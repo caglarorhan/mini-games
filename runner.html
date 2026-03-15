@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Endless Runner - Mini Games Arcade</title>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+        --bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;
+        --pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;
+        --green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;
+        --purple:#a855f7;--deep-purple:#7c3aed;
+        --text-light:#f0e6ff;--text-muted:#a99ec4;
+    }
+    body{
+        background:var(--bg-dark);color:var(--text-light);
+        font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+        min-height:100vh;overflow-x:hidden;
+    }
+    .bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+    .bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+    .bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+    .bg-blob:nth-child(2){width:350px;height:350px;background:var(--purple);bottom:-80px;right:-80px}
+    .bg-blob:nth-child(3){width:300px;height:300px;background:var(--cyan);top:50%;left:50%;transform:translate(-50%,-50%)}
+
+    .top-bar{
+        position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;
+        padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border);
+    }
+    .back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:6px;transition:color .2s}
+    .back-link:hover{color:var(--green)}
+    .game-badge{background:linear-gradient(135deg,var(--green),var(--cyan));color:#000;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+
+    header{position:relative;z-index:10;text-align:center;padding:28px 20px 10px}
+    header h1{font-size:2.2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--cyan),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    header p{color:var(--text-muted);margin-top:6px;font-size:.95rem}
+
+    .game-container{
+        position:relative;z-index:10;max-width:660px;margin:20px auto;padding:0 16px;
+    }
+    .hud{display:flex;justify-content:space-around;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+    .hud-box{
+        background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+        padding:10px 18px;text-align:center;min-width:90px;
+    }
+    .hud-box .label{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+    .hud-box .value{font-size:1.3rem;font-weight:800;margin-top:2px}
+    .score-val{color:var(--green)}
+    .hi-val{color:var(--yellow)}
+    .speed-val{color:var(--cyan)}
+
+    .canvas-wrap{
+        position:relative;border-radius:14px;overflow:hidden;
+        border:2px solid var(--border);box-shadow:0 0 30px rgba(6,214,160,.12);
+        background:var(--bg-card);
+    }
+    canvas{display:block;width:100%;height:auto;}
+
+    .overlay{
+        position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+        background:rgba(15,10,30,.82);opacity:1;transition:opacity .3s;z-index:5;
+    }
+    .overlay.hidden{opacity:0;pointer-events:none}
+    .overlay h2{font-size:1.8rem;font-weight:900;margin-bottom:8px;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .overlay .sub{color:var(--text-muted);margin-bottom:18px;font-size:.95rem}
+    .overlay .final-score{color:var(--yellow);font-size:1.4rem;font-weight:800;margin-bottom:14px}
+    .start-btn{
+        background:linear-gradient(135deg,var(--green),var(--cyan));color:#000;border:none;
+        padding:14px 40px;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer;transition:transform .15s;
+    }
+    .start-btn:hover{transform:translateY(-2px)}
+
+    .mobile-controls{
+        display:none;margin-top:14px;text-align:center;
+    }
+    .jump-btn{
+        background:linear-gradient(135deg,var(--green),var(--cyan));color:#000;border:none;
+        padding:18px 50px;border-radius:14px;font-size:1.2rem;font-weight:800;cursor:pointer;
+        user-select:none;-webkit-user-select:none;touch-action:manipulation;
+    }
+    @media(max-width:768px){.mobile-controls{display:block}}
+    @media(max-width:500px){header h1{font-size:1.6rem}}
+
+    .game-footer{
+        position:relative;z-index:10;text-align:center;padding:30px 20px;
+        color:var(--text-muted);font-size:.8rem;margin-top:20px;
+    }
+</style>
+</head>
+<body>
+<div class="bg-shapes">
+    <div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div>
+</div>
+
+<div class="top-bar">
+    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <span class="game-badge">&#127939; Runner</span>
+</div>
+
+<header>
+    <h1>Endless Runner</h1>
+    <p>Jump, dodge &amp; survive as long as you can!</p>
+</header>
+
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value score-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+        <div class="hud-box"><div class="label">Speed</div><div class="value speed-val" id="hSpeed">1x</div></div>
+    </div>
+
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="624" height="280"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="overlayTitle">Endless Runner</h2>
+            <div class="sub" id="overlaySub">Press Space or Tap to Start</div>
+            <div class="final-score" id="overlayScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Start</button>
+        </div>
+    </div>
+
+    <div class="mobile-controls">
+        <button class="jump-btn" id="jumpBtn">&#11014; JUMP</button>
+    </div>
+</div>
+
+<div class="game-footer">Endless Runner &bull; Mini Games Arcade</div>
+
+<script>
+(function(){
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const GROUND_Y = H - 40;
+
+    const overlay = document.getElementById('overlay');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlaySub = document.getElementById('overlaySub');
+    const overlayScore = document.getElementById('overlayScore');
+    const startBtn = document.getElementById('startBtn');
+    const jumpBtn = document.getElementById('jumpBtn');
+    const hScore = document.getElementById('hScore');
+    const hBest = document.getElementById('hBest');
+    const hSpeed = document.getElementById('hSpeed');
+
+    let bestScore = parseInt(localStorage.getItem('runner_best') || '0', 10);
+    hBest.textContent = bestScore;
+
+    // Colors from theme
+    const COL = {
+        ground: '#2a1f4e',
+        groundLine: '#3d2d6b',
+        sky: '#0f0a1e',
+        star: '#a99ec4',
+        player: '#06d6a0',
+        playerEye: '#fff',
+        obstacle: '#ff6b9d',
+        obstacleBird: '#ff8a47',
+        coin: '#ffd166',
+        particle: '#a855f7',
+        text: '#f0e6ff',
+    };
+
+    let state = 'idle'; // idle, running, dead
+    let score, speed, speedMult, frameCount;
+    let player, obstacles, coins, particles, stars, groundDots;
+
+    function initStars(){
+        stars = [];
+        for(let i = 0; i < 40; i++){
+            stars.push({x: Math.random()*W, y: Math.random()*(GROUND_Y-40), s: Math.random()*1.5+0.5, b: Math.random()});
+        }
+    }
+    function initGroundDots(){
+        groundDots = [];
+        for(let i = 0; i < 20; i++){
+            groundDots.push({x: Math.random()*W, speed: Math.random()*0.5+0.5});
+        }
+    }
+    initStars();
+    initGroundDots();
+
+    function resetGame(){
+        score = 0;
+        speed = 3.5;
+        speedMult = 1;
+        frameCount = 0;
+        player = {x:60, y:GROUND_Y, w:28, h:36, vy:0, grounded:true, ducking:false};
+        obstacles = [];
+        coins = [];
+        particles = [];
+        hScore.textContent = '0';
+        hSpeed.textContent = '1x';
+    }
+
+    function startGame(){
+        resetGame();
+        state = 'running';
+        overlay.classList.add('hidden');
+        requestAnimationFrame(loop);
+    }
+
+    function gameOver(){
+        state = 'dead';
+        if(score > bestScore){
+            bestScore = score;
+            localStorage.setItem('runner_best', String(bestScore));
+            hBest.textContent = bestScore;
+        }
+        overlayTitle.textContent = 'Game Over!';
+        overlaySub.textContent = 'Press Space or Tap to Restart';
+        overlayScore.style.display = 'block';
+        overlayScore.textContent = 'Score: ' + score;
+        startBtn.textContent = 'Retry';
+        overlay.classList.remove('hidden');
+    }
+
+    function jump(){
+        if(state === 'idle' || state === 'dead'){
+            startGame();
+            return;
+        }
+        if(player.grounded){
+            player.vy = -11;
+            player.grounded = false;
+        }
+    }
+
+    // Input
+    document.addEventListener('keydown', e => {
+        if(e.code === 'Space' || e.code === 'ArrowUp'){
+            e.preventDefault();
+            jump();
+        }
+    });
+    startBtn.addEventListener('click', e => {e.stopPropagation(); jump();});
+    jumpBtn.addEventListener('touchstart', e => {e.preventDefault(); jump();});
+    canvas.addEventListener('click', jump);
+
+    // Spawn
+    function spawnObstacle(){
+        const type = Math.random() < 0.75 ? 'ground' : 'air';
+        if(type === 'ground'){
+            const h = 24 + Math.random()*22;
+            const w = 16 + Math.random()*16;
+            obstacles.push({x:W+10, y:GROUND_Y-h, w:w, h:h, type:'ground'});
+        } else {
+            obstacles.push({x:W+10, y:GROUND_Y-60-Math.random()*30, w:28, h:18, type:'air'});
+        }
+    }
+
+    function spawnCoin(){
+        const y = GROUND_Y - 50 - Math.random()*60;
+        coins.push({x:W+10, y:y, r:8, collected:false});
+    }
+
+    function addParticles(x, y, color, count){
+        for(let i = 0; i < count; i++){
+            particles.push({
+                x:x, y:y, vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4,
+                life:1, color:color, r:Math.random()*3+1
+            });
+        }
+    }
+
+    // Collision
+    function rectsOverlap(a, b){
+        return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+    }
+
+    function update(){
+        frameCount++;
+
+        // Speed ramp
+        if(frameCount % 600 === 0){
+            speedMult += 0.15;
+            hSpeed.textContent = speedMult.toFixed(1) + 'x';
+        }
+        const curSpeed = speed * speedMult;
+
+        // Player gravity
+        if(!player.grounded){
+            player.vy += 0.55;
+            player.y += player.vy;
+            if(player.y >= GROUND_Y){
+                player.y = GROUND_Y;
+                player.vy = 0;
+                player.grounded = true;
+            }
+        }
+
+        // Spawn obstacles
+        if(frameCount % Math.max(40, Math.round(90 - speedMult*10)) === 0){
+            spawnObstacle();
+        }
+        if(frameCount % 80 === 0 && Math.random() < 0.4){
+            spawnCoin();
+        }
+
+        // Move obstacles
+        for(let i = obstacles.length-1; i >= 0; i--){
+            obstacles[i].x -= curSpeed;
+            if(obstacles[i].x + obstacles[i].w < 0){
+                obstacles.splice(i,1);
+                continue;
+            }
+            // Collision
+            const ph = player.h;
+            const py = player.y - ph;
+            if(rectsOverlap({x:player.x, y:py, w:player.w, h:ph}, obstacles[i])){
+                addParticles(player.x + player.w/2, player.y - player.h/2, COL.particle, 12);
+                gameOver();
+                return;
+            }
+        }
+
+        // Move coins
+        for(let i = coins.length-1; i >= 0; i--){
+            coins[i].x -= curSpeed;
+            if(coins[i].x + coins[i].r < 0){
+                coins.splice(i,1);
+                continue;
+            }
+            if(!coins[i].collected){
+                const dx = (player.x+player.w/2) - coins[i].x;
+                const dy = (player.y-player.h/2) - coins[i].y;
+                if(Math.sqrt(dx*dx+dy*dy) < coins[i].r + 16){
+                    coins[i].collected = true;
+                    score += 5;
+                    addParticles(coins[i].x, coins[i].y, COL.coin, 6);
+                }
+            }
+        }
+
+        // Particles
+        for(let i = particles.length-1; i >= 0; i--){
+            const p = particles[i];
+            p.x += p.vx; p.y += p.vy; p.life -= 0.03;
+            if(p.life <= 0) particles.splice(i,1);
+        }
+
+        // Score
+        if(frameCount % 6 === 0){
+            score++;
+            hScore.textContent = score;
+        }
+
+        // Ground dots
+        for(const d of groundDots){
+            d.x -= curSpeed * d.speed;
+            if(d.x < 0) d.x = W + Math.random()*40;
+        }
+    }
+
+    function draw(){
+        // Sky
+        ctx.fillStyle = COL.sky;
+        ctx.fillRect(0,0,W,H);
+
+        // Stars
+        for(const s of stars){
+            const flicker = 0.5 + 0.5 * Math.sin(frameCount*0.02 + s.b*10);
+            ctx.globalAlpha = flicker * 0.6;
+            ctx.fillStyle = COL.star;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.s, 0, Math.PI*2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // Ground
+        ctx.fillStyle = COL.ground;
+        ctx.fillRect(0, GROUND_Y, W, H-GROUND_Y);
+        ctx.strokeStyle = COL.groundLine;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND_Y);
+        ctx.lineTo(W, GROUND_Y);
+        ctx.stroke();
+
+        // Ground dots
+        ctx.fillStyle = COL.groundLine;
+        for(const d of groundDots){
+            ctx.fillRect(d.x, GROUND_Y + 8 + (d.speed*18), 2, 2);
+        }
+
+        // Obstacles
+        for(const o of obstacles){
+            if(o.type === 'ground'){
+                ctx.fillStyle = COL.obstacle;
+                ctx.beginPath();
+                roundRect(ctx, o.x, o.y, o.w, o.h, 4);
+                ctx.fill();
+                // spikes on top
+                ctx.fillStyle = '#ff8599';
+                const spikes = Math.floor(o.w / 8);
+                for(let s = 0; s < spikes; s++){
+                    const sx = o.x + 4 + s * (o.w-8)/Math.max(spikes-1,1);
+                    ctx.beginPath();
+                    ctx.moveTo(sx-3, o.y);
+                    ctx.lineTo(sx, o.y-6);
+                    ctx.lineTo(sx+3, o.y);
+                    ctx.fill();
+                }
+            } else {
+                // Bird
+                ctx.fillStyle = COL.obstacleBird;
+                ctx.beginPath();
+                ctx.moveTo(o.x, o.y + o.h/2);
+                ctx.lineTo(o.x + o.w/2, o.y);
+                ctx.lineTo(o.x + o.w, o.y + o.h/2);
+                ctx.lineTo(o.x + o.w/2, o.y + o.h);
+                ctx.closePath();
+                ctx.fill();
+                // Wings flap
+                const wingOff = Math.sin(frameCount*0.3)*6;
+                ctx.beginPath();
+                ctx.moveTo(o.x + o.w*0.3, o.y + o.h/2);
+                ctx.lineTo(o.x - 4, o.y + o.h/2 + wingOff);
+                ctx.lineTo(o.x + o.w*0.2, o.y + o.h*0.7);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(o.x + o.w*0.7, o.y + o.h/2);
+                ctx.lineTo(o.x + o.w + 4, o.y + o.h/2 + wingOff);
+                ctx.lineTo(o.x + o.w*0.8, o.y + o.h*0.7);
+                ctx.fill();
+            }
+        }
+
+        // Coins
+        for(const c of coins){
+            if(c.collected) continue;
+            ctx.fillStyle = COL.coin;
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, c.r, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#b8941a';
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, c.r*0.5, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        // Player
+        const px = player.x;
+        const py = player.y - player.h;
+        // Body
+        ctx.fillStyle = COL.player;
+        ctx.beginPath();
+        roundRect(ctx, px, py+8, player.w, player.h-8, 6);
+        ctx.fill();
+        // Head
+        ctx.beginPath();
+        ctx.arc(px + player.w/2, py + 8, 10, 0, Math.PI*2);
+        ctx.fill();
+        // Eye
+        ctx.fillStyle = COL.playerEye;
+        ctx.beginPath();
+        ctx.arc(px + player.w/2 + 4, py + 6, 3, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath();
+        ctx.arc(px + player.w/2 + 5, py + 6, 1.5, 0, Math.PI*2);
+        ctx.fill();
+        // Legs animation
+        const legOff = player.grounded ? Math.sin(frameCount*0.25)*4 : -3;
+        ctx.strokeStyle = COL.player;
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(px + 8, player.y);
+        ctx.lineTo(px + 8, player.y + legOff);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(px + player.w - 8, player.y);
+        ctx.lineTo(px + player.w - 8, player.y - legOff);
+        ctx.stroke();
+
+        // Particles
+        for(const p of particles){
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function roundRect(ctx, x, y, w, h, r){
+        ctx.moveTo(x+r, y);
+        ctx.lineTo(x+w-r, y);
+        ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+        ctx.lineTo(x+w,y+h-r);
+        ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+        ctx.lineTo(x+r,y+h);
+        ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+        ctx.lineTo(x,y+r);
+        ctx.quadraticCurveTo(x,y,x+r,y);
+    }
+
+    function loop(){
+        if(state !== 'running') return;
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    // Initial draw
+    resetGame();
+    draw();
+})();
+</script>
+</body>
+</html>
