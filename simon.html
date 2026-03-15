@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simon Says - Mini Games Arcade</title>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--deep-purple:#7c3aed;--text-light:#f0e6ff;--text-muted:#a99ec4}
+    body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+    .bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+    .bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+    .bg-blob:nth-child(1){width:400px;height:400px;background:var(--pink);top:-100px;left:-100px}
+    .bg-blob:nth-child(2){width:350px;height:350px;background:var(--green);bottom:-80px;right:-80px}
+    .bg-blob:nth-child(3){width:300px;height:300px;background:var(--yellow);top:50%;left:50%;transform:translate(-50%,-50%)}
+    .top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+    .back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:6px;transition:color .2s}
+    .back-link:hover{color:var(--green)}
+    .game-badge{background:linear-gradient(135deg,var(--pink),var(--orange));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+    header{position:relative;z-index:10;text-align:center;padding:28px 20px 10px}
+    header h1{font-size:2.2rem;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--yellow),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    header p{color:var(--text-muted);margin-top:6px;font-size:.95rem}
+    .game-container{position:relative;z-index:10;max-width:400px;margin:20px auto;padding:0 16px}
+    .hud{display:flex;justify-content:space-around;margin-bottom:14px;gap:10px}
+    .hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:10px 18px;text-align:center;min-width:90px;flex:1}
+    .hud-box .label{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+    .hud-box .value{font-size:1.3rem;font-weight:800;margin-top:2px}
+    .rd-val{color:var(--yellow)}.hi-val{color:var(--green)}
+
+    .status{text-align:center;margin-bottom:14px;font-size:1rem;font-weight:700;min-height:28px;color:var(--text-muted)}
+
+    .simon-board{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:320px;margin:0 auto;padding:20px;background:var(--bg-card);border-radius:20px;border:1px solid var(--border);box-shadow:0 0 30px rgba(255,107,157,.1)}
+    .pad{aspect-ratio:1;border-radius:16px;cursor:pointer;transition:all .15s;user-select:none;-webkit-user-select:none;border:3px solid transparent}
+    .pad.disabled{pointer-events:none;opacity:.6}
+    .pad:active{transform:scale(.95)}
+    .pad-green{background:#15803d}.pad-green.lit{background:#06d6a0;box-shadow:0 0 30px rgba(6,214,160,.7);border-color:rgba(6,214,160,.5)}
+    .pad-red{background:#991b1b}.pad-red.lit{background:#ef4444;box-shadow:0 0 30px rgba(239,68,68,.7);border-color:rgba(239,68,68,.5)}
+    .pad-yellow{background:#92400e}.pad-yellow.lit{background:#fbbf24;box-shadow:0 0 30px rgba(251,191,36,.7);border-color:rgba(251,191,36,.5)}
+    .pad-blue{background:#1e3a5f}.pad-blue.lit{background:#3b82f6;box-shadow:0 0 30px rgba(59,130,246,.7);border-color:rgba(59,130,246,.5)}
+
+    .controls{text-align:center;margin-top:22px}
+    .ctrl-btn{background:linear-gradient(135deg,var(--deep-purple),var(--purple));color:#fff;border:none;padding:12px 36px;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;transition:transform .15s}
+    .ctrl-btn:hover{transform:translateY(-2px)}
+
+    .msg{text-align:center;margin-top:14px;font-size:1rem;font-weight:700;min-height:24px}
+    .msg.win{color:var(--green)}.msg.lose{color:var(--pink)}
+
+    .game-footer{position:relative;z-index:10;text-align:center;padding:30px 20px;color:var(--text-muted);font-size:.8rem;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar">
+    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <span class="game-badge">&#127925; Memory</span>
+</div>
+<header><h1>Simon Says</h1><p>Watch the pattern, then repeat it!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Round</div><div class="value rd-val" id="hRound">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="status" id="status">Press Start to play</div>
+    <div class="simon-board" id="board">
+        <div class="pad pad-green disabled" data-color="0"></div>
+        <div class="pad pad-red disabled" data-color="1"></div>
+        <div class="pad pad-yellow disabled" data-color="2"></div>
+        <div class="pad pad-blue disabled" data-color="3"></div>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="controls"><button class="ctrl-btn" id="startBtn">Start</button></div>
+</div>
+<div class="game-footer">Simon Says &bull; Mini Games Arcade</div>
+<script>
+(function(){
+    const pads=document.querySelectorAll('.pad');
+    const hRound=document.getElementById('hRound'),hBest=document.getElementById('hBest');
+    const statusEl=document.getElementById('status'),msgEl=document.getElementById('msg');
+    const startBtn=document.getElementById('startBtn');
+
+    let best=parseInt(localStorage.getItem('simon_best')||'0',10);
+    hBest.textContent=best;
+
+    let sequence=[],playerIdx=0,playing=false,showing=false;
+
+    // Audio context for tones
+    let audioCtx;
+    const FREQS=[329.63,261.63,220,164.81]; // E4, C4, A3, E3
+    function playTone(idx,dur){
+        if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+        const osc=audioCtx.createOscillator();
+        const gain=audioCtx.createGain();
+        osc.connect(gain);gain.connect(audioCtx.destination);
+        osc.type='sine';osc.frequency.value=FREQS[idx];
+        gain.gain.value=0.15;
+        osc.start();osc.stop(audioCtx.currentTime+(dur||0.3));
+    }
+
+    function lightPad(idx,dur){
+        pads[idx].classList.add('lit');
+        playTone(idx,dur/1000);
+        setTimeout(()=>pads[idx].classList.remove('lit'),dur);
+    }
+
+    function setDisabled(val){
+        pads.forEach(p=>{if(val)p.classList.add('disabled');else p.classList.remove('disabled');});
+    }
+
+    startBtn.addEventListener('click',startGame);
+
+    function startGame(){
+        sequence=[];playerIdx=0;playing=true;
+        msgEl.textContent='';msgEl.className='msg';
+        nextRound();
+    }
+
+    function nextRound(){
+        sequence.push(Math.floor(Math.random()*4));
+        hRound.textContent=sequence.length;
+        statusEl.textContent='Watch carefully...';
+        setDisabled(true);showing=true;
+        showSequence();
+    }
+
+    function showSequence(){
+        let i=0;
+        const speed=Math.max(250,500-sequence.length*15);
+        const iv=setInterval(()=>{
+            lightPad(sequence[i],speed*0.7);
+            i++;
+            if(i>=sequence.length){
+                clearInterval(iv);
+                setTimeout(()=>{
+                    showing=false;
+                    setDisabled(false);
+                    statusEl.textContent='Your turn!';
+                    playerIdx=0;
+                },speed);
+            }
+        },speed);
+    }
+
+    pads.forEach(pad=>{
+        pad.addEventListener('click',()=>{
+            if(!playing||showing)return;
+            const idx=parseInt(pad.dataset.color,10);
+            lightPad(idx,200);
+
+            if(idx===sequence[playerIdx]){
+                playerIdx++;
+                if(playerIdx>=sequence.length){
+                    setDisabled(true);
+                    statusEl.textContent='Correct! \u2728';
+                    if(sequence.length>best){best=sequence.length;localStorage.setItem('simon_best',String(best));hBest.textContent=best;}
+                    setTimeout(nextRound,800);
+                }
+            } else {
+                // Wrong
+                playing=false;
+                setDisabled(true);
+                statusEl.textContent='Wrong!';
+                msgEl.textContent='Game Over! You reached round '+sequence.length;
+                msgEl.className='msg lose';
+                startBtn.textContent='Try Again';
+                // Flash all red briefly
+                pads.forEach(p=>p.classList.add('lit'));
+                setTimeout(()=>pads.forEach(p=>p.classList.remove('lit')),400);
+            }
+        });
+    });
+})();
+</script>
+</body>
+</html>
