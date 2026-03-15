@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mini-games-v2';
+const CACHE_NAME = 'mini-games-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -18,7 +18,10 @@ const ASSETS = [
   './games/minesweeper.html',
   './games/invaders.html',
   './games/simon.html',
-  './games/asteroids.html'
+  './games/asteroids.html',
+  './img/icon-512.png',
+  './img/icon-256.png',
+  './img/icon-128.png'
 ];
 
 self.addEventListener('install', event => {
