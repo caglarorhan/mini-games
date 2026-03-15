@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>&#127955; Pong — Mini Games Arcade</title>
+<style>
+  :root {
+    --bg-dark: #0f0a1e; --bg-card: #1a1333; --border: #2a1f4e;
+    --pink: #ff6b9d; --orange: #ff8a47; --yellow: #ffd166; --green: #06d6a0;
+    --cyan: #00e5ff; --blue: #118ab2; --purple: #a855f7; --deep-purple: #7c3aed;
+    --text-light: #f0e6ff; --text-muted: #a99ec4;
+  }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg-dark); color: var(--text-light); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+
+  .bg-shapes { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .bg-shapes .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.12; animation: blobFloat 20s ease-in-out infinite alternate; }
+  .blob:nth-child(1) { width: 350px; height: 350px; background: var(--blue); top: -10%; right: -5%; animation-duration: 24s; }
+  .blob:nth-child(2) { width: 300px; height: 300px; background: var(--cyan); bottom: -5%; left: -5%; animation-duration: 20s; animation-delay: -6s; }
+  .blob:nth-child(3) { width: 250px; height: 250px; background: var(--pink); top: 40%; left: 50%; animation-duration: 28s; animation-delay: -12s; }
+  @keyframes blobFloat { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-20px) scale(1.1); } 100% { transform: translate(-20px,30px) scale(0.95); } }
+
+  .page-content { position: relative; z-index: 1; width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .top-bar { width: 100%; max-width: 660px; padding: 20px 16px 0; display: flex; align-items: center; justify-content: space-between; }
+  .back-link { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 600; padding: 8px 16px; border-radius: 50px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); transition: all 0.2s; }
+  .back-link:hover { color: var(--cyan); border-color: rgba(0,229,255,0.3); }
+  .game-badge { display: inline-block; background: linear-gradient(135deg, var(--blue), var(--cyan)); color: white; padding: 5px 14px; border-radius: 50px; font-size: 0.72rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+
+  header { width: 100%; text-align: center; padding: 24px 0 12px; }
+  .title { font-size: clamp(1.6rem, 5vw, 2.8rem); font-weight: 900; background: linear-gradient(135deg, var(--cyan), var(--blue), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 4px; text-transform: uppercase; }
+  .title-sub { font-size: 0.9rem; color: var(--text-muted); margin-top: 4px; }
+
+  .game-container { padding: 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+  .score-display { display: flex; align-items: center; gap: 30px; margin-bottom: 4px; }
+  .score-side { text-align: center; }
+  .score-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; font-weight: 600; margin-bottom: 4px; }
+  .score-num { font-size: 2.2rem; font-weight: 900; }
+  .score-side:first-child .score-num { color: var(--cyan); }
+  .score-vs { font-size: 1rem; color: var(--text-muted); font-weight: 700; }
+  .score-side:last-child .score-num { color: var(--pink); }
+
+  canvas#game {
+    border: 2px solid var(--blue);
+    box-shadow: 0 0 15px rgba(17,138,178,0.3), 0 0 40px rgba(17,138,178,0.1);
+    border-radius: 4px; display: block; background: #0a0618;
+  }
+
+  .controls-info { font-size: 0.78rem; color: var(--text-muted); text-align: center; line-height: 1.8; margin-top: 4px; }
+  .controls-info span { color: var(--yellow); font-weight: 700; }
+
+  .diff-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .diff-btn { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-muted); font-family: inherit; font-size: 0.82rem; font-weight: 600; padding: 8px 16px; cursor: pointer; border-radius: 50px; transition: all 0.2s; }
+  .diff-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .diff-btn.active { border-color: var(--blue); color: white; background: linear-gradient(135deg, var(--blue), var(--cyan)); }
+
+  .mobile-controls { display: none; gap: 12px; padding: 10px 16px 20px; justify-content: center; width: 100%; max-width: 500px; }
+  .touch-zone { flex: 1; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .touch-zone-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  .mobile-btn { width: 64px; height: 64px; border-radius: 16px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-light); font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; user-select: none; }
+  .mobile-btn:active { background: var(--blue); border-color: var(--blue); transform: scale(0.92); }
+
+  .game-footer { text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.78rem; }
+  .game-footer a { color: var(--cyan); text-decoration: none; }
+
+  @media (max-width: 500px) {
+    canvas#game { width: 320px !important; height: 220px !important; }
+    .mobile-controls { display: flex; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="blob"></div><div class="blob"></div><div class="blob"></div></div>
+<div class="page-content">
+  <div class="top-bar">
+    <a href="index.html" class="back-link">&#8592; Home</a>
+    <span class="game-badge">Classic &middot; Action</span>
+  </div>
+  <header>
+    <div class="title">&#127955; Pong</div>
+    <p class="title-sub">Two paddles, one ball, unlimited rage.</p>
+  </header>
+  <div class="game-container">
+    <div class="score-display">
+      <div class="score-side"><div class="score-label">You</div><div class="score-num" id="p-score">0</div></div>
+      <div class="score-vs">VS</div>
+      <div class="score-side"><div class="score-label">CPU</div><div class="score-num" id="c-score">0</div></div>
+    </div>
+    <div class="diff-row">
+      <button class="diff-btn" data-diff="easy">&#128034; Easy</button>
+      <button class="diff-btn active" data-diff="normal">&#9889; Normal</button>
+      <button class="diff-btn" data-diff="hard">&#128293; Hard</button>
+    </div>
+    <canvas id="game" width="600" height="400"></canvas>
+    <div class="controls-info"><span>W / S</span> or <span>&#8593; &#8595;</span> to move your paddle &middot; First to 7 wins</div>
+    <div class="mobile-controls">
+      <div class="touch-zone">
+        <div class="touch-zone-label">Your paddle</div>
+        <button class="mobile-btn" id="mb-up">&#8593;</button>
+        <button class="mobile-btn" id="mb-down">&#8595;</button>
+      </div>
+    </div>
+  </div>
+  <div class="game-footer"><p>Made with &#10084;&#65039; for <a href="index.html">Mini Games Arcade</a></p></div>
+</div>
+
+<script>
+var canvas = document.getElementById('game');
+var ctx = canvas.getContext('2d');
+var W = canvas.width, H = canvas.height;
+
+var PADDLE_W = 10, PADDLE_H = 70, BALL_R = 7, WIN_SCORE = 7;
+var paddleSpeed = 5, ballSpeed = 4, cpuSpeed = 3;
+
+var player = { y: H / 2 - PADDLE_H / 2 };
+var cpu = { y: H / 2 - PADDLE_H / 2 };
+var ball = { x: W / 2, y: H / 2, vx: ballSpeed, vy: ballSpeed * 0.6 };
+var pScore = 0, cScore = 0, running = true, paused = false;
+var keys = {};
+
+var pScoreEl = document.getElementById('p-score');
+var cScoreEl = document.getElementById('c-score');
+
+function resetBall(dir) {
+  ball.x = W / 2;
+  ball.y = H / 2;
+  var angle = (Math.random() * 0.8 - 0.4);
+  ball.vx = ballSpeed * dir;
+  ball.vy = ballSpeed * angle;
+}
+
+function draw() {
+  ctx.fillStyle = '#0a0618';
+  ctx.fillRect(0, 0, W, H);
+
+  // Center line
+  ctx.setLineDash([6, 8]);
+  ctx.strokeStyle = 'rgba(168,85,247,0.2)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Player paddle
+  ctx.shadowColor = '#00e5ff';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#00e5ff';
+  ctx.fillRect(15, player.y, PADDLE_W, PADDLE_H);
+  ctx.shadowBlur = 0;
+
+  // CPU paddle
+  ctx.shadowColor = '#ff6b9d';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#ff6b9d';
+  ctx.fillRect(W - 15 - PADDLE_W, cpu.y, PADDLE_W, PADDLE_H);
+  ctx.shadowBlur = 0;
+
+  // Ball
+  ctx.shadowColor = '#ffd166';
+  ctx.shadowBlur = 15;
+  ctx.fillStyle = '#ffd166';
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function update() {
+  // Player movement
+  if (keys['ArrowUp'] || keys['KeyW']) player.y -= paddleSpeed;
+  if (keys['ArrowDown'] || keys['KeyS']) player.y += paddleSpeed;
+  player.y = Math.max(0, Math.min(H - PADDLE_H, player.y));
+
+  // CPU AI
+  var target = ball.y - PADDLE_H / 2;
+  var diff = target - cpu.y;
+  if (Math.abs(diff) > cpuSpeed) {
+    cpu.y += diff > 0 ? cpuSpeed : -cpuSpeed;
+  }
+  cpu.y = Math.max(0, Math.min(H - PADDLE_H, cpu.y));
+
+  // Ball movement
+  ball.x += ball.vx;
+  ball.y += ball.vy;
+
+  // Top/bottom bounce
+  if (ball.y - BALL_R <= 0 || ball.y + BALL_R >= H) {
+    ball.vy *= -1;
+    ball.y = ball.y - BALL_R <= 0 ? BALL_R : H - BALL_R;
+  }
+
+  // Player paddle collision
+  if (ball.vx < 0 && ball.x - BALL_R <= 25 && ball.x - BALL_R >= 15 &&
+      ball.y >= player.y && ball.y <= player.y + PADDLE_H) {
+    ball.vx = Math.abs(ball.vx) * 1.05;
+    var hitPos = (ball.y - player.y) / PADDLE_H - 0.5;
+    ball.vy = hitPos * ballSpeed * 1.5;
+  }
+
+  // CPU paddle collision
+  if (ball.vx > 0 && ball.x + BALL_R >= W - 25 && ball.x + BALL_R <= W - 15 &&
+      ball.y >= cpu.y && ball.y <= cpu.y + PADDLE_H) {
+    ball.vx = -Math.abs(ball.vx) * 1.05;
+    var hitPos2 = (ball.y - cpu.y) / PADDLE_H - 0.5;
+    ball.vy = hitPos2 * ballSpeed * 1.5;
+  }
+
+  // Scoring
+  if (ball.x < 0) {
+    cScore++;
+    cScoreEl.textContent = cScore;
+    if (cScore >= WIN_SCORE) { endGame('CPU wins! &#128128;'); return; }
+    resetBall(1);
+  }
+  if (ball.x > W) {
+    pScore++;
+    pScoreEl.textContent = pScore;
+    if (pScore >= WIN_SCORE) { endGame('You win! &#127942;'); return; }
+    resetBall(-1);
+  }
+
+  // Cap ball speed
+  var maxV = 12;
+  if (Math.abs(ball.vx) > maxV) ball.vx = ball.vx > 0 ? maxV : -maxV;
+}
+
+function loop() {
+  if (!running) return;
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function endGame(msg) {
+  running = false;
+  draw();
+  ctx.fillStyle = 'rgba(15,10,30,0.85)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#f0e6ff';
+  ctx.font = '800 24px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(msg.replace(/&#\d+;/g, ''), W / 2, H / 2 - 10);
+  ctx.font = '600 14px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#a99ec4';
+  ctx.fillText('Click to play again', W / 2, H / 2 + 20);
+  canvas.addEventListener('click', restart, {once: true});
+}
+
+function restart() {
+  pScore = 0; cScore = 0;
+  pScoreEl.textContent = 0; cScoreEl.textContent = 0;
+  player.y = H / 2 - PADDLE_H / 2;
+  cpu.y = H / 2 - PADDLE_H / 2;
+  resetBall(1);
+  running = true;
+  loop();
+}
+
+document.addEventListener('keydown', function(e) { keys[e.code] = true; if (e.code.startsWith('Arrow')) e.preventDefault(); });
+document.addEventListener('keyup', function(e) { keys[e.code] = false; });
+
+// Difficulty
+document.querySelectorAll('.diff-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.diff-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var d = btn.dataset.diff;
+    if (d === 'easy') { cpuSpeed = 2; ballSpeed = 3.5; }
+    else if (d === 'normal') { cpuSpeed = 3; ballSpeed = 4; }
+    else { cpuSpeed = 4.5; ballSpeed = 5; }
+    restart();
+  });
+});
+
+// Mobile
+function holdBtn(id, fn) {
+  var el = document.getElementById(id);
+  var interval = null;
+  function start(e) { e.preventDefault(); fn(); interval = setInterval(fn, 50); }
+  function stop() { clearInterval(interval); }
+  el.addEventListener('touchstart', start, {passive:false});
+  el.addEventListener('touchend', stop);
+  el.addEventListener('touchcancel', stop);
+  el.addEventListener('mousedown', start);
+  el.addEventListener('mouseup', stop);
+  el.addEventListener('mouseleave', stop);
+}
+holdBtn('mb-up', function() { player.y = Math.max(0, player.y - paddleSpeed); });
+holdBtn('mb-down', function() { player.y = Math.min(H - PADDLE_H, player.y + paddleSpeed); });
+
+resetBall(1);
+loop();
+</script>
+</body>
+</html>
