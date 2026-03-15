@@ -268,6 +268,14 @@
         .game-card:nth-child(5) { --glow-color: rgba(6,214,160,0.25); }
         .game-card:nth-child(6) { --glow-color: rgba(168,85,247,0.25); }
         .game-card:nth-child(7) { --glow-color: rgba(255,138,71,0.25); }
+        .game-card:nth-child(8) { --glow-color: rgba(0,229,255,0.25); }
+        .game-card:nth-child(9) { --glow-color: rgba(255,138,71,0.25); }
+        .game-card:nth-child(10) { --glow-color: rgba(255,107,157,0.25); }
+        .game-card:nth-child(11) { --glow-color: rgba(255,209,102,0.25); }
+        .game-card:nth-child(12) { --glow-color: rgba(6,214,160,0.25); }
+        .game-card:nth-child(13) { --glow-color: rgba(168,85,247,0.25); }
+        .game-card:nth-child(14) { --glow-color: rgba(0,229,255,0.25); }
+        .game-card:nth-child(15) { --glow-color: rgba(255,107,157,0.25); }
 
         /* Game card artwork area */
         .card-art {
@@ -293,6 +301,14 @@
         .card-tictac .card-art-bg { background: linear-gradient(135deg, #dc2626, #f97316, #fbbf24); }
         .card-runner .card-art-bg { background: linear-gradient(135deg, #be185d, #ec4899, #f9a8d4); }
         .card-puzzle .card-art-bg { background: linear-gradient(135deg, #d97706, #f59e0b, #fde047); }
+        .card-breakout .card-art-bg { background: linear-gradient(135deg, #0369a1, #00e5ff, #06d6a0); }
+        .card-flappy .card-art-bg { background: linear-gradient(135deg, #f59e0b, #fbbf24, #fde68a); }
+        .card-whack .card-art-bg { background: linear-gradient(135deg, #92400e, #b45309, #d97706); }
+        .card-2048 .card-art-bg { background: linear-gradient(135deg, #ea580c, #f97316, #fb923c); }
+        .card-minesweeper .card-art-bg { background: linear-gradient(135deg, #4d7c0f, #65a30d, #84cc16); }
+        .card-invaders .card-art-bg { background: linear-gradient(135deg, #1e1b4b, #312e81, #4f46e5); }
+        .card-simon .card-art-bg { background: linear-gradient(135deg, #be123c, #dc2626, #f43f5e); }
+        .card-asteroids .card-art-bg { background: linear-gradient(135deg, #0c0a09, #1c1917, #44403c); }
 
         /* CSS Art for each game */
         .card-icon {
@@ -572,6 +588,72 @@
             border: 2px dashed rgba(255,255,255,0.2);
         }
 
+        /* Breakout CSS art */
+        .breakout-art { position:relative;z-index:1;width:130px;height:80px; }
+        .breakout-bricks { display:grid;grid-template-columns:repeat(5,1fr);gap:3px; }
+        .breakout-brick { height:12px;border-radius:3px; }
+        .breakout-paddle { width:40px;height:8px;background:#00e5ff;border-radius:4px;margin:8px auto 0;box-shadow:0 0 8px rgba(0,229,255,.5); }
+        .breakout-ball-art { width:8px;height:8px;background:#ffd166;border-radius:50%;margin:4px auto 0;box-shadow:0 0 8px rgba(255,209,102,.6); }
+
+        /* Flappy CSS art */
+        .flappy-art { position:relative;z-index:1;width:140px;height:80px; }
+        .flappy-bird { position:absolute;left:30px;top:50%;transform:translateY(-50%);width:24px;height:20px;background:#fbbf24;border-radius:50% 50% 40% 40%;animation:flapBird 1s ease-in-out infinite; }
+        .flappy-bird::before { content:'';position:absolute;right:-6px;top:6px;width:8px;height:6px;background:#f97316;border-radius:0 4px 4px 0; }
+        .flappy-bird::after { content:'';position:absolute;left:5px;top:4px;width:5px;height:5px;background:#1a1333;border-radius:50%; }
+        .flappy-pipe { position:absolute;width:20px;background:#16a34a;border-radius:4px; }
+        .flappy-pipe-top { right:30px;top:0;height:25px; }
+        .flappy-pipe-bottom { right:30px;bottom:0;height:25px; }
+        .flappy-pipe2-top { right:5px;top:0;height:35px; }
+        .flappy-pipe2-bottom { right:5px;bottom:0;height:20px; }
+        @keyframes flapBird { 0%,100%{transform:translateY(-50%) rotate(-5deg)} 50%{transform:translateY(-70%) rotate(5deg)} }
+
+        /* Whack-a-Mole CSS art */
+        .whack-art { display:grid;grid-template-columns:repeat(3,1fr);gap:8px;position:relative;z-index:1; }
+        .whack-hole { width:34px;height:34px;background:rgba(0,0,0,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem; }
+        .whack-hole.has-mole { animation:moleUp .6s ease-in-out infinite alternate; }
+        @keyframes moleUp { 0%{transform:translateY(4px)} 100%{transform:translateY(-4px)} }
+
+        /* 2048 CSS art */
+        .game2048-art { display:grid;grid-template-columns:repeat(4,1fr);gap:3px;position:relative;z-index:1; }
+        .game2048-tile { width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:900;color:white; }
+        .t-2{background:#eab308;color:#78350f}.t-4{background:#f59e0b;color:#78350f}.t-8{background:#f97316}.t-16{background:#ef4444}.t-32{background:#dc2626}.t-64{background:#b91c1c}.t-128{background:#a855f7}.t-256{background:#7c3aed}.t-512{background:#6d28d9}.t-1024{background:#4f46e5}.t-2048{background:#06d6a0;color:#064e3b}
+        .t-0{background:rgba(255,255,255,.08)}
+
+        /* Minesweeper CSS art */
+        .mines-art { display:grid;grid-template-columns:repeat(4,1fr);gap:3px;position:relative;z-index:1; }
+        .mines-cell { width:26px;height:26px;background:rgba(255,255,255,.12);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800; }
+        .mines-cell.revealed { background:rgba(0,0,0,.25); }
+
+        /* Space Invaders CSS art */
+        .invaders-art { position:relative;z-index:1;width:130px;height:80px; }
+        .invader-row { display:flex;justify-content:center;gap:6px;margin-bottom:6px; }
+        .invader { width:16px;height:12px;background:#06d6a0;border-radius:2px;position:relative; }
+        .invader::before,.invader::after { content:'';position:absolute;bottom:-4px;width:4px;height:4px;background:#06d6a0;border-radius:1px; }
+        .invader::before { left:1px; } .invader::after { right:1px; }
+        .invader.pink { background:#ff6b9d; } .invader.pink::before,.invader.pink::after { background:#ff6b9d; }
+        .invader.cyan { background:#00e5ff; } .invader.cyan::before,.invader.cyan::after { background:#00e5ff; }
+        .invader-ship { width:20px;height:8px;background:#ffd166;border-radius:4px 4px 0 0;margin:12px auto 0;position:relative; }
+        .invader-ship::before { content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:4px;height:5px;background:#ffd166;border-radius:2px 2px 0 0; }
+
+        /* Simon CSS art */
+        .simon-art { display:grid;grid-template-columns:1fr 1fr;gap:6px;position:relative;z-index:1; }
+        .simon-pad { width:42px;height:42px;border-radius:10px;opacity:.85;transition:opacity .2s; }
+        .simon-pad.sp-green { background:#06d6a0; } .simon-pad.sp-red { background:#ef4444; }
+        .simon-pad.sp-yellow { background:#fbbf24; } .simon-pad.sp-blue { background:#3b82f6; }
+        .game-card:hover .simon-pad:nth-child(1) { opacity:1;box-shadow:0 0 16px rgba(6,214,160,.6); }
+        .game-card:hover .simon-pad:nth-child(2) { opacity:1;box-shadow:0 0 16px rgba(239,68,68,.6);transition-delay:.15s; }
+        .game-card:hover .simon-pad:nth-child(3) { opacity:1;box-shadow:0 0 16px rgba(251,191,36,.6);transition-delay:.3s; }
+        .game-card:hover .simon-pad:nth-child(4) { opacity:1;box-shadow:0 0 16px rgba(59,130,246,.6);transition-delay:.45s; }
+
+        /* Asteroids CSS art */
+        .asteroids-art { position:relative;z-index:1;width:130px;height:80px; }
+        .asteroid-rock { position:absolute;border:2px solid rgba(255,255,255,.6);border-radius:40% 60% 50% 50%;animation:asteroidSpin 6s linear infinite; }
+        .asteroid-rock:nth-child(1) { width:24px;height:22px;top:10px;left:10px; }
+        .asteroid-rock:nth-child(2) { width:18px;height:20px;top:40px;right:20px;animation-duration:8s;animation-direction:reverse; }
+        .asteroid-rock:nth-child(3) { width:14px;height:14px;bottom:10px;left:50px;animation-duration:5s; }
+        .asteroids-ship { position:absolute;bottom:15px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:16px solid #ffd166; }
+        @keyframes asteroidSpin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
         /* Tetris CSS art */
         .tetris-art {
             display: grid;
@@ -645,6 +727,10 @@
         .tag-strategy { background: rgba(255,209,102,0.15); color: var(--yellow); }
         .tag-reflex { background: rgba(0,229,255,0.15); color: var(--cyan); }
         .tag-chill { background: rgba(255,138,71,0.15); color: var(--orange); }
+        .tag-arcade { background: rgba(0,229,255,0.15); color: var(--cyan); }
+        .tag-retro { background: rgba(124,58,237,0.15); color: var(--deep-purple); }
+        .tag-memory { background: rgba(255,209,102,0.15); color: var(--yellow); }
+        .tag-puzzle { background: rgba(6,214,160,0.15); color: var(--green); }
 
         .card-title {
             font-size: 1.25rem;
@@ -1097,7 +1183,7 @@
         <!-- ========== STATS BAR ========== -->
         <div class="stats-bar">
             <div class="stat">
-                <div class="stat-number" id="stat-games">12+</div>
+                <div class="stat-number" id="stat-games">15</div>
                 <div class="stat-label">Mini Games</div>
             </div>
             <div class="stat">
@@ -1362,6 +1448,261 @@
                         <p class="card-desc">Slide tiles into order. Sounds zen until you're 47 moves in and panicking.</p>
                         <div class="card-footer">
                             <span class="card-players">🔴 <span>134</span> playing</span>
+                            <button class="play-btn">Play</button>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Breakout -->
+                <a href="breakout.html" class="game-card card-breakout reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                    <div class="card-art">
+                        <div class="card-art-bg"></div>
+                        <div class="breakout-art">
+                            <div class="breakout-bricks">
+                                <div class="breakout-brick" style="background:#ff6b9d"></div>
+                                <div class="breakout-brick" style="background:#ff8a47"></div>
+                                <div class="breakout-brick" style="background:#ffd166"></div>
+                                <div class="breakout-brick" style="background:#06d6a0"></div>
+                                <div class="breakout-brick" style="background:#00e5ff"></div>
+                                <div class="breakout-brick" style="background:#a855f7"></div>
+                                <div class="breakout-brick" style="background:#ff6b9d"></div>
+                                <div class="breakout-brick" style="background:#ff8a47"></div>
+                                <div class="breakout-brick" style="background:#ffd166"></div>
+                                <div class="breakout-brick" style="background:#06d6a0"></div>
+                            </div>
+                            <div class="breakout-paddle"></div>
+                            <div class="breakout-ball-art"></div>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-tags">
+                            <span class="card-tag tag-arcade">Arcade</span>
+                            <span class="card-tag tag-classic">Classic</span>
+                        </div>
+                        <h3 class="card-title">🧱 Breakout</h3>
+                        <p class="card-desc">Bounce the ball, smash the bricks. Pure retro satisfaction.</p>
+                        <div class="card-footer">
+                            <span class="card-players">🔴 <span>312</span> playing</span>
+                            <button class="play-btn">Play</button>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Flappy Bird -->
+                <a href="flappy.html" class="game-card card-flappy reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                    <div class="card-art">
+                        <div class="card-art-bg"></div>
+                        <div class="flappy-art">
+                            <div class="flappy-bird"></div>
+                            <div class="flappy-pipe flappy-pipe-top"></div>
+                            <div class="flappy-pipe flappy-pipe-bottom"></div>
+                            <div class="flappy-pipe flappy-pipe2-top"></div>
+                            <div class="flappy-pipe flappy-pipe2-bottom"></div>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-tags">
+                            <span class="card-tag tag-reflex">Reflex</span>
+                            <span class="card-tag tag-action">Action</span>
+                        </div>
+                        <h3 class="card-title">🐦 Flappy Bird</h3>
+                        <p class="card-desc">Tap to fly. Hit a pipe and it's over. Sounds easy? It's not.</p>
+                        <div class="card-footer">
+                            <span class="card-players">🔴 <span>578</span> playing</span>
+                            <button class="play-btn">Play</button>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Whack-a-Mole -->
+                <a href="whack.html" class="game-card card-whack reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                    <div class="card-art">
+                        <div class="card-art-bg"></div>
+                        <div class="whack-art">
+                            <div class="whack-hole"></div>
+                            <div class="whack-hole has-mole">🐹</div>
+                            <div class="whack-hole"></div>
+                            <div class="whack-hole has-mole">🐹</div>
+                            <div class="whack-hole"></div>
+                            <div class="whack-hole has-mole">🐹</div>
+                            <div class="whack-hole"></div>
+                            <div class="whack-hole"></div>
+                            <div class="whack-hole has-mole">🐹</div>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-tags">
+                            <span class="card-tag tag-reflex">Reflex</span>
+                            <span class="card-tag tag-action">Action</span>
+                        </div>
+                        <h3 class="card-title">🔨 Whack-a-Mole</h3>
+                        <p class="card-desc">They pop up, you bonk them. Stress relief at its finest.</p>
+                        <div class="card-footer">
+                            <span class="card-players">🔴 <span>245</span> playing</span>
+                            <button class="play-btn">Play</button>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- 2048 -->
+                <a href="2048.html" class="game-card card-2048 reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                    <div class="card-art">
+                        <div class="card-art-bg"></div>
+                        <div class="game2048-art">
+                            <div class="game2048-tile t-2">2</div>
+                            <div class="game2048-tile t-0"></div>
+                            <div class="game2048-tile t-4">4</div>
+                            <div class="game2048-tile t-0"></div>
+                            <div class="game2048-tile t-0"></div>
+                            <div class="game2048-tile t-16">16</div>
+                            <div class="game2048-tile t-8">8</div>
+                            <div class="game2048-tile t-2">2</div>
+                            <div class="game2048-tile t-32">32</div>
+                            <div class="game2048-tile t-0"></div>
+                            <div class="game2048-tile t-0"></div>
+                            <div class="game2048-tile t-64">64</div>
+                            <div class="game2048-tile t-0"></div>
+                            <div class="game2048-tile t-128">128</div>
+                            <div class="game2048-tile t-0"></div>
+                            <div class="game2048-tile t-256">256</div>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-tags">
+                            <span class="card-tag tag-puzzle">Puzzle</span>
+                            <span class="card-tag tag-brain">Brain</span>
+                        </div>
+                        <h3 class="card-title">🔢 2048</h3>
+                        <p class="card-desc">Slide, merge, double. Get to 2048 or lose your mind trying.</p>
+                        <div class="card-footer">
+                            <span class="card-players">🔴 <span>723</span> playing</span>
+                            <button class="play-btn">Play</button>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Minesweeper -->
+                <a href="minesweeper.html" class="game-card card-minesweeper reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                    <div class="card-art">
+                        <div class="card-art-bg"></div>
+                        <div class="mines-art">
+                            <div class="mines-cell revealed">1</div>
+                            <div class="mines-cell revealed" style="color:#06d6a0">2</div>
+                            <div class="mines-cell"></div>
+                            <div class="mines-cell"></div>
+                            <div class="mines-cell revealed"></div>
+                            <div class="mines-cell revealed" style="color:#ff6b9d">3</div>
+                            <div class="mines-cell revealed">1</div>
+                            <div class="mines-cell">🚩</div>
+                            <div class="mines-cell revealed"></div>
+                            <div class="mines-cell revealed">1</div>
+                            <div class="mines-cell"></div>
+                            <div class="mines-cell"></div>
+                            <div class="mines-cell"></div>
+                            <div class="mines-cell revealed" style="color:#ffd166">2</div>
+                            <div class="mines-cell revealed">1</div>
+                            <div class="mines-cell">🚩</div>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-tags">
+                            <span class="card-tag tag-strategy">Strategy</span>
+                            <span class="card-tag tag-brain">Brain</span>
+                        </div>
+                        <h3 class="card-title">💣 Minesweeper</h3>
+                        <p class="card-desc">The OG logic game. One wrong click and... BOOM.</p>
+                        <div class="card-footer">
+                            <span class="card-players">🔴 <span>389</span> playing</span>
+                            <button class="play-btn">Play</button>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Space Invaders -->
+                <a href="invaders.html" class="game-card card-invaders reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                    <div class="card-art">
+                        <div class="card-art-bg"></div>
+                        <div class="invaders-art">
+                            <div class="invader-row">
+                                <div class="invader cyan"></div>
+                                <div class="invader cyan"></div>
+                                <div class="invader cyan"></div>
+                                <div class="invader cyan"></div>
+                            </div>
+                            <div class="invader-row">
+                                <div class="invader pink"></div>
+                                <div class="invader pink"></div>
+                                <div class="invader pink"></div>
+                                <div class="invader pink"></div>
+                            </div>
+                            <div class="invader-row">
+                                <div class="invader"></div>
+                                <div class="invader"></div>
+                                <div class="invader"></div>
+                                <div class="invader"></div>
+                            </div>
+                            <div class="invader-ship"></div>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-tags">
+                            <span class="card-tag tag-retro">Retro</span>
+                            <span class="card-tag tag-action">Action</span>
+                        </div>
+                        <h3 class="card-title">🚀 Space Invaders</h3>
+                        <p class="card-desc">Defend Earth from pixel aliens. A timeless battle.</p>
+                        <div class="card-footer">
+                            <span class="card-players">🔴 <span>456</span> playing</span>
+                            <button class="play-btn">Play</button>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Simon Says -->
+                <a href="simon.html" class="game-card card-simon reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                    <div class="card-art">
+                        <div class="card-art-bg"></div>
+                        <div class="simon-art">
+                            <div class="simon-pad sp-green"></div>
+                            <div class="simon-pad sp-red"></div>
+                            <div class="simon-pad sp-yellow"></div>
+                            <div class="simon-pad sp-blue"></div>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-tags">
+                            <span class="card-tag tag-memory">Memory</span>
+                            <span class="card-tag tag-brain">Brain</span>
+                        </div>
+                        <h3 class="card-title">🎵 Simon Says</h3>
+                        <p class="card-desc">Watch the pattern, repeat it. How long can your memory hold?</p>
+                        <div class="card-footer">
+                            <span class="card-players">🔴 <span>198</span> playing</span>
+                            <button class="play-btn">Play</button>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Asteroids -->
+                <a href="asteroids.html" class="game-card card-asteroids reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                    <div class="card-art">
+                        <div class="card-art-bg"></div>
+                        <div class="asteroids-art">
+                            <div class="asteroid-rock"></div>
+                            <div class="asteroid-rock"></div>
+                            <div class="asteroid-rock"></div>
+                            <div class="asteroids-ship"></div>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-tags">
+                            <span class="card-tag tag-retro">Retro</span>
+                            <span class="card-tag tag-arcade">Arcade</span>
+                        </div>
+                        <h3 class="card-title">☄️ Asteroids</h3>
+                        <p class="card-desc">Rotate, thrust, shoot. Classic space rock destruction.</p>
+                        <div class="card-footer">
+                            <span class="card-players">🔴 <span>341</span> playing</span>
                             <button class="play-btn">Play</button>
                         </div>
                     </div>
