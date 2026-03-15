@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2048 - Mini Games Arcade</title>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--deep-purple:#7c3aed;--text-light:#f0e6ff;--text-muted:#a99ec4}
+    body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+    .bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+    .bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+    .bg-blob:nth-child(1){width:400px;height:400px;background:var(--orange);top:-100px;left:-100px}
+    .bg-blob:nth-child(2){width:350px;height:350px;background:var(--yellow);bottom:-80px;right:-80px}
+    .bg-blob:nth-child(3){width:300px;height:300px;background:var(--pink);top:50%;left:50%;transform:translate(-50%,-50%)}
+    .top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+    .back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:6px;transition:color .2s}
+    .back-link:hover{color:var(--green)}
+    .game-badge{background:linear-gradient(135deg,var(--orange),var(--pink));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+    header{position:relative;z-index:10;text-align:center;padding:28px 20px 10px}
+    header h1{font-size:2.8rem;font-weight:900;background:linear-gradient(135deg,var(--orange),var(--yellow),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    header p{color:var(--text-muted);margin-top:6px;font-size:.95rem}
+    .game-container{position:relative;z-index:10;max-width:420px;margin:20px auto;padding:0 16px}
+    .hud{display:flex;justify-content:space-around;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+    .hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:10px 18px;text-align:center;min-width:90px;flex:1}
+    .hud-box .label{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+    .hud-box .value{font-size:1.3rem;font-weight:800;margin-top:2px}
+    .sc-val{color:var(--orange)}.hi-val{color:var(--green)}
+
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px;background:var(--bg-card);border-radius:14px;border:1px solid var(--border);box-shadow:0 0 30px rgba(255,138,71,.1)}
+    .cell{aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.5rem;transition:all .1s;user-select:none}
+    .c-0{background:rgba(255,255,255,.05);color:transparent}
+    .c-2{background:#eab308;color:#78350f}.c-4{background:#f59e0b;color:#78350f}
+    .c-8{background:#f97316;color:#fff}.c-16{background:#ef4444;color:#fff}
+    .c-32{background:#dc2626;color:#fff}.c-64{background:#b91c1c;color:#fff}
+    .c-128{background:#a855f7;color:#fff;font-size:1.3rem}.c-256{background:#7c3aed;color:#fff;font-size:1.3rem}
+    .c-512{background:#6d28d9;color:#fff;font-size:1.3rem}.c-1024{background:#4f46e5;color:#fff;font-size:1.1rem}
+    .c-2048{background:#06d6a0;color:#064e3b;font-size:1.1rem}.c-super{background:linear-gradient(135deg,#ffd166,#ff6b9d);color:#fff;font-size:1rem}
+
+    .cell.pop{animation:cellPop .15s ease}
+    @keyframes cellPop{0%{transform:scale(0)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+    .cell.merge{animation:cellMerge .2s ease}
+    @keyframes cellMerge{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
+
+    .controls{text-align:center;margin-top:18px;display:flex;gap:10px;justify-content:center}
+    .ctrl-btn{background:linear-gradient(135deg,var(--deep-purple),var(--purple));color:#fff;border:none;padding:12px 28px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;transition:transform .15s}
+    .ctrl-btn:hover{transform:translateY(-2px)}
+
+    .msg{text-align:center;margin-top:14px;font-size:1.1rem;font-weight:700;min-height:28px}
+    .msg.win{color:var(--green)}.msg.lose{color:var(--pink)}
+
+    .mobile-arrows{display:none;margin-top:14px}
+    .arrow-grid{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr 1fr;gap:6px;max-width:180px;margin:0 auto}
+    .arr-btn{background:var(--bg-card);border:1px solid var(--border);color:var(--text-light);padding:14px;border-radius:10px;font-size:1.2rem;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+    .arr-btn:active{background:var(--border)}
+    @media(max-width:768px){.mobile-arrows{display:block}}
+    @media(max-width:400px){.cell{font-size:1.1rem}.c-128,.c-256,.c-512{font-size:1rem}.c-1024,.c-2048,.c-super{font-size:.85rem}}
+
+    .game-footer{position:relative;z-index:10;text-align:center;padding:30px 20px;color:var(--text-muted);font-size:.8rem;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar">
+    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <span class="game-badge">&#128290; Puzzle</span>
+</div>
+<header><h1>2048</h1><p>Slide &amp; merge tiles to reach 2048!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value sc-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="msg" id="msg"></div>
+    <div class="controls">
+        <button class="ctrl-btn" id="newBtn">New Game</button>
+    </div>
+    <div class="mobile-arrows">
+        <div class="arrow-grid">
+            <div></div><button class="arr-btn" id="aUp">&#9650;</button><div></div>
+            <button class="arr-btn" id="aLeft">&#9664;</button><div></div><button class="arr-btn" id="aRight">&#9654;</button>
+            <div></div><button class="arr-btn" id="aDown">&#9660;</button><div></div>
+        </div>
+    </div>
+</div>
+<div class="game-footer">2048 &bull; Mini Games Arcade</div>
+<script>
+(function(){
+    const SIZE=4;
+    const gridEl=document.getElementById('grid');
+    const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest');
+    const msgEl=document.getElementById('msg');
+
+    let grid,score,gameOver,won;
+    let best=parseInt(localStorage.getItem('g2048_best')||'0',10);
+    hBest.textContent=best;
+
+    document.getElementById('newBtn').addEventListener('click',init);
+    document.getElementById('aUp').addEventListener('click',()=>move('up'));
+    document.getElementById('aDown').addEventListener('click',()=>move('down'));
+    document.getElementById('aLeft').addEventListener('click',()=>move('left'));
+    document.getElementById('aRight').addEventListener('click',()=>move('right'));
+
+    document.addEventListener('keydown',e=>{
+        const map={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
+        if(map[e.key]){e.preventDefault();move(map[e.key]);}
+    });
+
+    // Swipe
+    let sx,sy;
+    document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+    document.addEventListener('touchend',e=>{
+        const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+        if(Math.abs(dx)<30&&Math.abs(dy)<30)return;
+        if(Math.abs(dx)>Math.abs(dy)){move(dx>0?'right':'left');}
+        else{move(dy>0?'down':'up');}
+    },{passive:true});
+
+    function init(){
+        grid=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+        score=0;gameOver=false;won=false;
+        hScore.textContent='0';msgEl.textContent='';msgEl.className='msg';
+        spawn();spawn();render();
+    }
+
+    function spawn(){
+        const empty=[];
+        for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(grid[r][c]===0)empty.push([r,c]);
+        if(!empty.length)return;
+        const [r,c]=empty[Math.floor(Math.random()*empty.length)];
+        grid[r][c]=Math.random()<.9?2:4;
+    }
+
+    function render(){
+        gridEl.innerHTML='';
+        for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+            const v=grid[r][c];
+            const el=document.createElement('div');
+            let cls='cell ';
+            if(v===0)cls+='c-0';
+            else if(v<=2048)cls+='c-'+v;
+            else cls+='c-super';
+            el.className=cls;
+            el.textContent=v||'';
+            gridEl.appendChild(el);
+        }
+    }
+
+    function move(dir){
+        if(gameOver)return;
+        let moved=false;
+        const rotated=dir==='up'||dir==='down';
+        const reversed=dir==='right'||dir==='down';
+
+        for(let i=0;i<SIZE;i++){
+            let line=[];
+            for(let j=0;j<SIZE;j++){
+                const r=rotated?j:i,c=rotated?i:j;
+                line.push(grid[r][c]);
+            }
+            if(reversed)line.reverse();
+
+            // Slide
+            let filtered=line.filter(x=>x!==0);
+            let merged=[];
+            for(let k=0;k<filtered.length;k++){
+                if(k+1<filtered.length&&filtered[k]===filtered[k+1]){
+                    const val=filtered[k]*2;
+                    merged.push(val);
+                    score+=val;
+                    if(val===2048&&!won){won=true;msgEl.textContent='You reached 2048! \uD83C\uDF89 Keep going!';msgEl.className='msg win';}
+                    k++;
+                } else {
+                    merged.push(filtered[k]);
+                }
+            }
+            while(merged.length<SIZE)merged.push(0);
+            if(reversed)merged.reverse();
+
+            for(let j=0;j<SIZE;j++){
+                const r=rotated?j:i,c=rotated?i:j;
+                if(grid[r][c]!==merged[j])moved=true;
+                grid[r][c]=merged[j];
+            }
+        }
+
+        if(moved){
+            spawn();
+            hScore.textContent=score;
+            if(score>best){best=score;localStorage.setItem('g2048_best',String(best));hBest.textContent=best;}
+            render();
+            if(!canMove()){gameOver=true;msgEl.textContent='Game Over! No more moves.';msgEl.className='msg lose';}
+        }
+    }
+
+    function canMove(){
+        for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+            if(grid[r][c]===0)return true;
+            if(c+1<SIZE&&grid[r][c]===grid[r][c+1])return true;
+            if(r+1<SIZE&&grid[r][c]===grid[r+1][c])return true;
+        }
+        return false;
+    }
+
+    init();
+})();
+</script>
+</body>
+</html>
