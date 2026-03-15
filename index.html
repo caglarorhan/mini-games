@@ -261,12 +261,13 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 30px var(--glow-color, rgba(168,85,247,0.2));
         }
 
-        .game-card:nth-child(1) { --glow-color: rgba(255,107,157,0.25); }
-        .game-card:nth-child(2) { --glow-color: rgba(0,229,255,0.25); }
-        .game-card:nth-child(3) { --glow-color: rgba(255,209,102,0.25); }
-        .game-card:nth-child(4) { --glow-color: rgba(6,214,160,0.25); }
-        .game-card:nth-child(5) { --glow-color: rgba(168,85,247,0.25); }
-        .game-card:nth-child(6) { --glow-color: rgba(255,138,71,0.25); }
+        .game-card:nth-child(1) { --glow-color: rgba(0,229,255,0.25); }
+        .game-card:nth-child(2) { --glow-color: rgba(255,107,157,0.25); }
+        .game-card:nth-child(3) { --glow-color: rgba(0,229,255,0.25); }
+        .game-card:nth-child(4) { --glow-color: rgba(255,209,102,0.25); }
+        .game-card:nth-child(5) { --glow-color: rgba(6,214,160,0.25); }
+        .game-card:nth-child(6) { --glow-color: rgba(168,85,247,0.25); }
+        .game-card:nth-child(7) { --glow-color: rgba(255,138,71,0.25); }
 
         /* Game card artwork area */
         .card-art {
@@ -285,6 +286,7 @@
         }
 
         /* Individual card art backgrounds */
+        .card-tetris .card-art-bg { background: linear-gradient(135deg, #0e7490, #06b6d4, #22d3ee); }
         .card-snake .card-art-bg { background: linear-gradient(135deg, #0d9488, #06d6a0, #34d399); }
         .card-memory .card-art-bg { background: linear-gradient(135deg, #7c3aed, #a855f7, #c084fc); }
         .card-pong .card-art-bg { background: linear-gradient(135deg, #0369a1, #0ea5e9, #38bdf8); }
@@ -568,6 +570,52 @@
         .puzzle-piece.empty {
             background: transparent;
             border: 2px dashed rgba(255,255,255,0.2);
+        }
+
+        /* Tetris CSS art */
+        .tetris-art {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 3px;
+            position: relative;
+            z-index: 1;
+            width: 120px;
+        }
+
+        .tetris-block {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .tb-cyan { background: #00e5ff; box-shadow: 0 0 6px rgba(0,229,255,0.4); }
+        .tb-yellow { background: #ffd166; box-shadow: 0 0 6px rgba(255,209,102,0.4); }
+        .tb-purple { background: #a855f7; box-shadow: 0 0 6px rgba(168,85,247,0.4); }
+        .tb-pink { background: #ff6b9d; box-shadow: 0 0 6px rgba(255,107,157,0.4); }
+        .tb-orange { background: #ff8a47; box-shadow: 0 0 6px rgba(255,138,71,0.4); }
+        .tb-green { background: #06d6a0; box-shadow: 0 0 6px rgba(6,214,160,0.4); }
+        .tb-empty { background: transparent; border: none; }
+
+        .game-card:hover .tetris-block:not(.tb-empty) {
+            animation: tetrisDrop 0.5s ease-out forwards;
+        }
+
+        .tetris-art .tetris-block:nth-child(1) { animation-delay: 0s; }
+        .tetris-art .tetris-block:nth-child(2) { animation-delay: 0.03s; }
+        .tetris-art .tetris-block:nth-child(3) { animation-delay: 0.06s; }
+        .tetris-art .tetris-block:nth-child(4) { animation-delay: 0.09s; }
+        .tetris-art .tetris-block:nth-child(5) { animation-delay: 0.12s; }
+        .tetris-art .tetris-block:nth-child(6) { animation-delay: 0.02s; }
+        .tetris-art .tetris-block:nth-child(7) { animation-delay: 0.05s; }
+        .tetris-art .tetris-block:nth-child(8) { animation-delay: 0.08s; }
+        .tetris-art .tetris-block:nth-child(9) { animation-delay: 0.11s; }
+        .tetris-art .tetris-block:nth-child(10) { animation-delay: 0.14s; }
+
+        @keyframes tetrisDrop {
+            0% { transform: translateY(-6px); opacity: 0.5; }
+            100% { transform: translateY(0); opacity: 1; }
         }
 
         /* Card info area */
@@ -1092,15 +1140,15 @@
                 <p>Hand-picked just for you!</p>
             </div>
             <div class="featured-card">
-                <div class="featured-emoji">🐍</div>
+                <div class="featured-emoji">🧱</div>
                 <div class="featured-info">
                     <span class="featured-label">⭐ Staff Pick</span>
-                    <h3 class="featured-title">Snake Classic</h3>
+                    <h3 class="featured-title">Tetris</h3>
                     <p class="featured-desc">
-                        The legendary game that started it all. Guide your snake, eat apples,
-                        grow longer, and try not to bite yourself. Sounds easy? Think again. 😏
+                        The legendary block-stacking game that defined a generation. Stack 'em,
+                        clear lines, watch the speed climb. Simple rules, infinite addiction. 😏
                     </p>
-                    <button class="featured-btn" onclick="confettiBurst(event)">▶ Play Now — It's Free!</button>
+                    <a href="tetris.html" style="text-decoration:none"><button class="featured-btn" onclick="confettiBurst(event)">▶ Play Now — It's Free!</button></a>
                 </div>
             </div>
         </section>
@@ -1113,6 +1161,47 @@
             </div>
 
             <div class="games-grid">
+
+                <!-- Tetris -->
+                <a href="tetris.html" class="game-card card-tetris reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                    <div class="card-art">
+                        <div class="card-art-bg"></div>
+                        <div class="tetris-art">
+                            <div class="tetris-block tb-empty"></div>
+                            <div class="tetris-block tb-cyan"></div>
+                            <div class="tetris-block tb-empty"></div>
+                            <div class="tetris-block tb-empty"></div>
+                            <div class="tetris-block tb-yellow"></div>
+                            <div class="tetris-block tb-empty"></div>
+                            <div class="tetris-block tb-cyan"></div>
+                            <div class="tetris-block tb-purple"></div>
+                            <div class="tetris-block tb-empty"></div>
+                            <div class="tetris-block tb-yellow"></div>
+                            <div class="tetris-block tb-pink"></div>
+                            <div class="tetris-block tb-cyan"></div>
+                            <div class="tetris-block tb-purple"></div>
+                            <div class="tetris-block tb-orange"></div>
+                            <div class="tetris-block tb-yellow"></div>
+                            <div class="tetris-block tb-pink"></div>
+                            <div class="tetris-block tb-cyan"></div>
+                            <div class="tetris-block tb-purple"></div>
+                            <div class="tetris-block tb-orange"></div>
+                            <div class="tetris-block tb-green"></div>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-tags">
+                            <span class="card-tag tag-classic">Classic</span>
+                            <span class="card-tag tag-brain">Brain</span>
+                        </div>
+                        <h3 class="card-title">🧱 Tetris</h3>
+                        <p class="card-desc">Stack falling blocks, clear lines, survive the speed. The OG brain teaser.</p>
+                        <div class="card-footer">
+                            <span class="card-players">🔴 <span>512</span> playing</span>
+                            <button class="play-btn">Play</button>
+                        </div>
+                    </div>
+                </a>
 
                 <!-- Snake -->
                 <div class="game-card card-snake reveal" onclick="confettiBurst(event)">
