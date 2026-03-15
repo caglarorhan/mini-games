@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic Tac Toe - Mini Games Arcade</title>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+        --bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;
+        --pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;
+        --green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;
+        --purple:#a855f7;--deep-purple:#7c3aed;
+        --text-light:#f0e6ff;--text-muted:#a99ec4;
+    }
+    body{
+        background:var(--bg-dark);color:var(--text-light);
+        font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+        min-height:100vh;overflow-x:hidden;
+    }
+    .bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+    .bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+    .bg-blob:nth-child(1){width:400px;height:400px;background:var(--pink);top:-100px;left:-100px}
+    .bg-blob:nth-child(2){width:350px;height:350px;background:var(--cyan);bottom:-80px;right:-80px}
+    .bg-blob:nth-child(3){width:300px;height:300px;background:var(--orange);top:50%;left:50%;transform:translate(-50%,-50%)}
+
+    .top-bar{
+        position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;
+        padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border);
+    }
+    .back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:6px;transition:color .2s}
+    .back-link:hover{color:var(--green)}
+    .game-badge{background:linear-gradient(135deg,var(--orange),var(--yellow));color:#000;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+
+    header{position:relative;z-index:10;text-align:center;padding:28px 20px 10px}
+    header h1{font-size:2.2rem;font-weight:900;background:linear-gradient(135deg,var(--orange),var(--yellow),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:none}
+    header p{color:var(--text-muted);margin-top:6px;font-size:.95rem}
+
+    .game-container{
+        position:relative;z-index:10;max-width:460px;margin:20px auto;padding:0 16px;
+    }
+    .hud{display:flex;justify-content:space-around;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+    .hud-box{
+        background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+        padding:10px 18px;text-align:center;min-width:90px;
+    }
+    .hud-box .label{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+    .hud-box .value{font-size:1.3rem;font-weight:800;margin-top:2px}
+    .hud-box .value.x-color{color:var(--cyan)}
+    .hud-box .value.o-color{color:var(--pink)}
+    .hud-box .value.draw-color{color:var(--yellow)}
+
+    .status-bar{
+        text-align:center;margin-bottom:14px;font-size:1.1rem;font-weight:700;
+        min-height:32px;line-height:32px;
+    }
+    .status-bar.x-turn{color:var(--cyan)}
+    .status-bar.o-turn{color:var(--pink)}
+    .status-bar.winner{color:var(--green);font-size:1.3rem}
+    .status-bar.draw{color:var(--yellow)}
+
+    .difficulty-row{display:flex;justify-content:center;gap:8px;margin-bottom:16px}
+    .diff-btn{
+        background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);
+        padding:6px 16px;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s;
+    }
+    .diff-btn.active{border-color:var(--orange);color:var(--orange);background:rgba(255,138,71,.1)}
+    .diff-btn:hover{border-color:var(--orange);color:var(--orange)}
+
+    .board{
+        display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
+        max-width:340px;margin:0 auto;
+        background:var(--border);border-radius:14px;padding:6px;
+        box-shadow:0 0 30px rgba(168,85,247,.15);
+    }
+    .cell{
+        aspect-ratio:1;background:var(--bg-card);border-radius:10px;
+        display:flex;align-items:center;justify-content:center;
+        font-size:2.8rem;font-weight:900;cursor:pointer;
+        transition:background .15s,transform .15s;user-select:none;
+        border:2px solid transparent;
+    }
+    .cell:hover:not(.taken){background:rgba(42,31,78,.8);transform:scale(1.04)}
+    .cell.x{color:var(--cyan);text-shadow:0 0 12px rgba(0,229,255,.4)}
+    .cell.o{color:var(--pink);text-shadow:0 0 12px rgba(255,107,157,.4)}
+    .cell.win-cell{
+        animation:winPulse .6s ease infinite alternate;
+        border-color:var(--green);
+        box-shadow:0 0 18px rgba(6,214,160,.3);
+    }
+    @keyframes winPulse{0%{transform:scale(1)}100%{transform:scale(1.06)}}
+
+    .cell.pop{animation:cellPop .25s ease}
+    @keyframes cellPop{0%{transform:scale(0)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+
+    .controls{text-align:center;margin-top:22px}
+    .restart-btn{
+        background:linear-gradient(135deg,var(--deep-purple),var(--purple));
+        color:#fff;border:none;padding:12px 36px;border-radius:10px;
+        font-size:1rem;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;
+    }
+    .restart-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(168,85,247,.35)}
+
+    .score-summary{
+        text-align:center;margin-top:18px;font-size:.85rem;color:var(--text-muted);
+    }
+
+    .game-footer{
+        position:relative;z-index:10;text-align:center;padding:30px 20px;
+        color:var(--text-muted);font-size:.8rem;margin-top:20px;
+    }
+
+    @media(max-width:400px){
+        .cell{font-size:2rem}
+        header h1{font-size:1.6rem}
+        .board{max-width:280px}
+    }
+</style>
+</head>
+<body>
+<div class="bg-shapes">
+    <div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div>
+</div>
+
+<div class="top-bar">
+    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <span class="game-badge">&#10006; &#9711; Strategy</span>
+</div>
+
+<header>
+    <h1>Tic Tac Toe</h1>
+    <p>Challenge the AI &mdash; can you outsmart it?</p>
+</header>
+
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">You (X)</div><div class="value x-color" id="scoreX">0</div></div>
+        <div class="hud-box"><div class="label">Draw</div><div class="value draw-color" id="scoreDraw">0</div></div>
+        <div class="hud-box"><div class="label">AI (O)</div><div class="value o-color" id="scoreO">0</div></div>
+    </div>
+
+    <div class="difficulty-row">
+        <button class="diff-btn" data-diff="easy">Easy</button>
+        <button class="diff-btn active" data-diff="normal">Normal</button>
+        <button class="diff-btn" data-diff="hard">Hard</button>
+    </div>
+
+    <div class="status-bar x-turn" id="status">Your turn (X)</div>
+
+    <div class="board" id="board"></div>
+
+    <div class="controls">
+        <button class="restart-btn" id="restartBtn">New Game</button>
+    </div>
+
+    <div class="score-summary" id="summary"></div>
+</div>
+
+<div class="game-footer">Tic Tac Toe &bull; Mini Games Arcade</div>
+
+<script>
+(function(){
+    const WIN_LINES = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+    ];
+
+    let board, currentPlayer, gameOver, difficulty;
+    let scores = {X:0, O:0, D:0};
+    let totalGames = 0;
+
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const scoreXEl = document.getElementById('scoreX');
+    const scoreOEl = document.getElementById('scoreO');
+    const scoreDrawEl = document.getElementById('scoreDraw');
+    const summaryEl = document.getElementById('summary');
+    const restartBtn = document.getElementById('restartBtn');
+
+    // Difficulty
+    difficulty = 'normal';
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+        btn.addEventListener('click', function(){
+            document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            difficulty = this.dataset.diff;
+            initGame();
+        });
+    });
+
+    restartBtn.addEventListener('click', initGame);
+
+    function initGame(){
+        board = Array(9).fill(null);
+        currentPlayer = 'X';
+        gameOver = false;
+        statusEl.className = 'status-bar x-turn';
+        statusEl.textContent = 'Your turn (X)';
+        renderBoard();
+    }
+
+    function renderBoard(){
+        boardEl.innerHTML = '';
+        for(let i = 0; i < 9; i++){
+            const cell = document.createElement('div');
+            cell.className = 'cell' + (board[i] ? ' taken ' + board[i].toLowerCase() : '');
+            cell.textContent = board[i] === 'X' ? '\u2715' : board[i] === 'O' ? '\u25EF' : '';
+            cell.addEventListener('click', () => handleClick(i));
+            boardEl.appendChild(cell);
+        }
+    }
+
+    function handleClick(idx){
+        if(gameOver || board[idx] || currentPlayer !== 'X') return;
+        makeMove(idx, 'X');
+        if(!gameOver){
+            currentPlayer = 'O';
+            statusEl.className = 'status-bar o-turn';
+            statusEl.textContent = 'AI is thinking...';
+            setTimeout(aiMove, 350);
+        }
+    }
+
+    function makeMove(idx, player){
+        board[idx] = player;
+        renderBoard();
+        // pop animation
+        const cells = boardEl.children;
+        cells[idx].classList.add('pop');
+
+        const win = checkWin(player);
+        if(win){
+            gameOver = true;
+            highlightWin(win);
+            scores[player]++;
+            totalGames++;
+            updateScores();
+            statusEl.className = 'status-bar winner';
+            statusEl.textContent = player === 'X' ? 'You win! \uD83C\uDF89' : 'AI wins! \uD83E\uDD16';
+            return;
+        }
+        if(board.every(c => c !== null)){
+            gameOver = true;
+            scores.D++;
+            totalGames++;
+            updateScores();
+            statusEl.className = 'status-bar draw';
+            statusEl.textContent = 'It\'s a draw! \uD83E\uDD1D';
+            return;
+        }
+    }
+
+    function aiMove(){
+        if(gameOver) return;
+        let move;
+        if(difficulty === 'easy'){
+            move = aiEasy();
+        } else if(difficulty === 'normal'){
+            move = Math.random() < 0.6 ? aiBest() : aiEasy();
+        } else {
+            move = aiBest();
+        }
+        makeMove(move, 'O');
+        if(!gameOver){
+            currentPlayer = 'X';
+            statusEl.className = 'status-bar x-turn';
+            statusEl.textContent = 'Your turn (X)';
+        }
+    }
+
+    function aiEasy(){
+        const empty = board.map((v,i) => v === null ? i : -1).filter(i => i >= 0);
+        return empty[Math.floor(Math.random() * empty.length)];
+    }
+
+    function aiBest(){
+        let bestScore = -Infinity;
+        let bestMove = -1;
+        for(let i = 0; i < 9; i++){
+            if(board[i]) continue;
+            board[i] = 'O';
+            let score = minimax(board, 0, false);
+            board[i] = null;
+            if(score > bestScore){ bestScore = score; bestMove = i; }
+        }
+        return bestMove;
+    }
+
+    function minimax(b, depth, isMax){
+        const winO = checkWinFor(b, 'O');
+        const winX = checkWinFor(b, 'X');
+        if(winO) return 10 - depth;
+        if(winX) return depth - 10;
+        if(b.every(c => c !== null)) return 0;
+
+        if(isMax){
+            let best = -Infinity;
+            for(let i = 0; i < 9; i++){
+                if(b[i]) continue;
+                b[i] = 'O';
+                best = Math.max(best, minimax(b, depth+1, false));
+                b[i] = null;
+            }
+            return best;
+        } else {
+            let best = Infinity;
+            for(let i = 0; i < 9; i++){
+                if(b[i]) continue;
+                b[i] = 'X';
+                best = Math.min(best, minimax(b, depth+1, true));
+                b[i] = null;
+            }
+            return best;
+        }
+    }
+
+    function checkWinFor(b, p){
+        return WIN_LINES.some(l => l.every(i => b[i] === p));
+    }
+
+    function checkWin(player){
+        for(const line of WIN_LINES){
+            if(line.every(i => board[i] === player)) return line;
+        }
+        return null;
+    }
+
+    function highlightWin(line){
+        const cells = boardEl.children;
+        line.forEach(i => cells[i].classList.add('win-cell'));
+    }
+
+    function updateScores(){
+        scoreXEl.textContent = scores.X;
+        scoreOEl.textContent = scores.O;
+        scoreDrawEl.textContent = scores.D;
+        summaryEl.textContent = 'Games played: ' + totalGames;
+    }
+
+    initGame();
+})();
+</script>
+</body>
+</html>
