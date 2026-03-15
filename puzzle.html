@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sliding Puzzle - Mini Games Arcade</title>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+        --bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;
+        --pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;
+        --green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;
+        --purple:#a855f7;--deep-purple:#7c3aed;
+        --text-light:#f0e6ff;--text-muted:#a99ec4;
+    }
+    body{
+        background:var(--bg-dark);color:var(--text-light);
+        font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+        min-height:100vh;overflow-x:hidden;
+    }
+    .bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+    .bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+    .bg-blob:nth-child(1){width:400px;height:400px;background:var(--purple);top:-100px;left:-100px}
+    .bg-blob:nth-child(2){width:350px;height:350px;background:var(--orange);bottom:-80px;right:-80px}
+    .bg-blob:nth-child(3){width:300px;height:300px;background:var(--pink);top:50%;left:50%;transform:translate(-50%,-50%)}
+
+    .top-bar{
+        position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;
+        padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border);
+    }
+    .back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:6px;transition:color .2s}
+    .back-link:hover{color:var(--green)}
+    .game-badge{background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+
+    header{position:relative;z-index:10;text-align:center;padding:28px 20px 10px}
+    header h1{font-size:2.2rem;font-weight:900;background:linear-gradient(135deg,var(--purple),var(--pink),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    header p{color:var(--text-muted);margin-top:6px;font-size:.95rem}
+
+    .game-container{
+        position:relative;z-index:10;max-width:460px;margin:20px auto;padding:0 16px;
+    }
+    .hud{display:flex;justify-content:space-around;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+    .hud-box{
+        background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+        padding:10px 18px;text-align:center;min-width:90px;
+    }
+    .hud-box .label{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+    .hud-box .value{font-size:1.3rem;font-weight:800;margin-top:2px}
+    .moves-val{color:var(--cyan)}
+    .time-val{color:var(--yellow)}
+    .best-val{color:var(--green)}
+
+    .size-row{display:flex;justify-content:center;gap:8px;margin-bottom:16px}
+    .size-btn{
+        background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);
+        padding:6px 16px;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s;
+    }
+    .size-btn.active{border-color:var(--purple);color:var(--purple);background:rgba(168,85,247,.1)}
+    .size-btn:hover{border-color:var(--purple);color:var(--purple)}
+
+    .board{
+        display:grid;gap:4px;max-width:360px;margin:0 auto;
+        background:var(--border);border-radius:14px;padding:6px;
+        box-shadow:0 0 30px rgba(168,85,247,.15);
+    }
+    .tile{
+        aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;
+        font-size:1.6rem;font-weight:900;cursor:pointer;user-select:none;
+        transition:transform .12s,background .15s;
+    }
+    .tile.num{
+        background:linear-gradient(135deg,var(--bg-card),#241a45);
+        border:1px solid var(--border);color:var(--text-light);
+    }
+    .tile.num:hover{transform:scale(1.05);background:linear-gradient(135deg,#241a45,#2e2060)}
+    .tile.empty{background:transparent;cursor:default}
+    .tile.correct{color:var(--green)}
+    .tile.sliding{animation:tileSlide .12s ease}
+    @keyframes tileSlide{0%{transform:scale(.9)}100%{transform:scale(1)}}
+
+    .win-banner{
+        text-align:center;margin-top:18px;padding:16px;border-radius:12px;
+        background:linear-gradient(135deg,rgba(6,214,160,.15),rgba(168,85,247,.15));
+        border:1px solid var(--green);display:none;
+    }
+    .win-banner h3{color:var(--green);font-size:1.3rem;margin-bottom:4px}
+    .win-banner p{color:var(--text-muted);font-size:.9rem}
+
+    .controls{text-align:center;margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+    .ctrl-btn{
+        background:linear-gradient(135deg,var(--deep-purple),var(--purple));
+        color:#fff;border:none;padding:12px 28px;border-radius:10px;
+        font-size:.95rem;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;
+    }
+    .ctrl-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(168,85,247,.35)}
+
+    .game-footer{
+        position:relative;z-index:10;text-align:center;padding:30px 20px;
+        color:var(--text-muted);font-size:.8rem;margin-top:20px;
+    }
+
+    @media(max-width:400px){
+        .tile{font-size:1.2rem}
+        header h1{font-size:1.6rem}
+        .board{max-width:300px}
+    }
+</style>
+</head>
+<body>
+<div class="bg-shapes">
+    <div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div>
+</div>
+
+<div class="top-bar">
+    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <span class="game-badge">&#129513; Puzzle</span>
+</div>
+
+<header>
+    <h1>Sliding Puzzle</h1>
+    <p>Slide tiles into the correct order &mdash; stay calm!</p>
+</header>
+
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Moves</div><div class="value moves-val" id="hMoves">0</div></div>
+        <div class="hud-box"><div class="label">Time</div><div class="value time-val" id="hTime">0:00</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value best-val" id="hBest">-</div></div>
+    </div>
+
+    <div class="size-row">
+        <button class="size-btn" data-size="3">3&times;3</button>
+        <button class="size-btn active" data-size="4">4&times;4</button>
+        <button class="size-btn" data-size="5">5&times;5</button>
+    </div>
+
+    <div class="board" id="board"></div>
+
+    <div class="win-banner" id="winBanner">
+        <h3>&#127881; Puzzle Solved!</h3>
+        <p id="winText"></p>
+    </div>
+
+    <div class="controls">
+        <button class="ctrl-btn" id="shuffleBtn">Shuffle</button>
+        <button class="ctrl-btn" id="newBtn">New Game</button>
+    </div>
+</div>
+
+<div class="game-footer">Sliding Puzzle &bull; Mini Games Arcade</div>
+
+<script>
+(function(){
+    let size = 4;
+    let tiles, emptyIdx, moves, timerInterval, seconds, solved;
+
+    const boardEl = document.getElementById('board');
+    const hMoves = document.getElementById('hMoves');
+    const hTime = document.getElementById('hTime');
+    const hBest = document.getElementById('hBest');
+    const winBanner = document.getElementById('winBanner');
+    const winText = document.getElementById('winText');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const newBtn = document.getElementById('newBtn');
+
+    function bestKey(){ return 'puzzle_best_' + size; }
+
+    function loadBest(){
+        const b = localStorage.getItem(bestKey());
+        hBest.textContent = b ? b + ' moves' : '-';
+    }
+
+    // Size buttons
+    document.querySelectorAll('.size-btn').forEach(btn => {
+        btn.addEventListener('click', function(){
+            document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            size = parseInt(this.dataset.size, 10);
+            initGame();
+        });
+    });
+
+    shuffleBtn.addEventListener('click', initGame);
+    newBtn.addEventListener('click', initGame);
+
+    function initGame(){
+        clearInterval(timerInterval);
+        seconds = 0;
+        moves = 0;
+        solved = false;
+        hMoves.textContent = '0';
+        hTime.textContent = '0:00';
+        winBanner.style.display = 'none';
+        loadBest();
+
+        // Create solved state then shuffle
+        const total = size * size;
+        tiles = [];
+        for(let i = 1; i < total; i++) tiles.push(i);
+        tiles.push(0); // 0 = empty
+        emptyIdx = total - 1;
+
+        // Shuffle by making random valid moves (ensures solvability)
+        const shuffleMoves = size * size * 40;
+        for(let i = 0; i < shuffleMoves; i++){
+            const neighbors = getNeighbors(emptyIdx);
+            const pick = neighbors[Math.floor(Math.random() * neighbors.length)];
+            tiles[emptyIdx] = tiles[pick];
+            tiles[pick] = 0;
+            emptyIdx = pick;
+        }
+
+        renderBoard();
+        startTimer();
+    }
+
+    function getNeighbors(idx){
+        const r = Math.floor(idx / size), c = idx % size;
+        const n = [];
+        if(r > 0) n.push(idx - size);
+        if(r < size-1) n.push(idx + size);
+        if(c > 0) n.push(idx - 1);
+        if(c < size-1) n.push(idx + 1);
+        return n;
+    }
+
+    function renderBoard(){
+        boardEl.style.gridTemplateColumns = 'repeat(' + size + ', 1fr)';
+        boardEl.innerHTML = '';
+        const total = size * size;
+        for(let i = 0; i < total; i++){
+            const t = document.createElement('div');
+            if(tiles[i] === 0){
+                t.className = 'tile empty';
+            } else {
+                t.className = 'tile num';
+                t.textContent = tiles[i];
+                // Highlight correct position
+                if(tiles[i] === i + 1) t.classList.add('correct');
+                t.addEventListener('click', () => clickTile(i));
+            }
+            boardEl.appendChild(t);
+        }
+    }
+
+    function clickTile(idx){
+        if(solved) return;
+        const neighbors = getNeighbors(idx);
+        if(!neighbors.includes(emptyIdx)) return;
+
+        // Swap
+        tiles[emptyIdx] = tiles[idx];
+        tiles[idx] = 0;
+        emptyIdx = idx;
+        moves++;
+        hMoves.textContent = moves;
+
+        renderBoard();
+
+        // Animate the moved tile
+        const movedEl = boardEl.children[emptyIdx === idx ? idx : tiles.indexOf(tiles[emptyIdx]) >= 0 ? emptyIdx : idx];
+
+        // Check win
+        if(checkWin()){
+            solved = true;
+            clearInterval(timerInterval);
+            winBanner.style.display = 'block';
+            winText.textContent = 'Completed in ' + moves + ' moves and ' + formatTime(seconds) + '!';
+
+            // Save best
+            const prev = parseInt(localStorage.getItem(bestKey()) || '99999', 10);
+            if(moves < prev){
+                localStorage.setItem(bestKey(), String(moves));
+                hBest.textContent = moves + ' moves';
+            }
+        }
+    }
+
+    function checkWin(){
+        const total = size * size;
+        for(let i = 0; i < total - 1; i++){
+            if(tiles[i] !== i + 1) return false;
+        }
+        return tiles[total-1] === 0;
+    }
+
+    function startTimer(){
+        clearInterval(timerInterval);
+        seconds = 0;
+        timerInterval = setInterval(() => {
+            seconds++;
+            hTime.textContent = formatTime(seconds);
+        }, 1000);
+    }
+
+    function formatTime(s){
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return m + ':' + (sec < 10 ? '0' : '') + sec;
+    }
+
+    initGame();
+})();
+</script>
+</body>
+</html>
