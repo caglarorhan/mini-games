@@ -51,7 +51,7 @@
 <body>
 <div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div></div>
 <div class="top-bar">
-    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <a href="../index.html" class="back-link">&#8592; Back to Games</a>
     <span class="game-badge">&#129521; Breakout</span>
 </div>
 <header><h1>Breakout</h1><p>Smash all the bricks &mdash; don't let the ball drop!</p></header>
@@ -78,6 +78,7 @@
 </div>
 <div class="game-footer">Breakout &bull; Mini Games Arcade</div>
 <script>
+(function(){var k='mg_plays_breakout',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
 (function(){
     const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
     const W=canvas.width,H=canvas.height;
@@ -209,6 +210,7 @@
 
     function endGame(){
         state='dead';
+        var _b=+localStorage.getItem('mg_best_breakout')||0;if(score>_b)localStorage.setItem('mg_best_breakout',String(score));
         oTitle.textContent='Game Over!';oSub.textContent='Press Space or Tap to Retry';
         oScore.style.display='block';oScore.textContent='Score: '+score+' | Level: '+level;
         document.getElementById('startBtn').textContent='Retry';

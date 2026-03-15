@@ -62,7 +62,7 @@
 <body>
 <div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div></div>
 <div class="top-bar">
-    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <a href="../index.html" class="back-link">&#8592; Back to Games</a>
     <span class="game-badge">&#128290; Puzzle</span>
 </div>
 <header><h1>2048</h1><p>Slide &amp; merge tiles to reach 2048!</p></header>
@@ -86,6 +86,7 @@
 </div>
 <div class="game-footer">2048 &bull; Mini Games Arcade</div>
 <script>
+(function(){var k='mg_plays_2048',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
 (function(){
     const SIZE=4;
     const gridEl=document.getElementById('grid');

@@ -107,7 +107,7 @@
 <div class="bg-shapes"><div class="blob"></div><div class="blob"></div><div class="blob"></div></div>
 <div class="page-content">
   <div class="top-bar">
-    <a href="index.html" class="back-link">&#8592; Home</a>
+    <a href="../index.html" class="back-link">&#8592; Home</a>
     <span class="game-badge">Classic &middot; Reflex</span>
   </div>
   <header>
@@ -137,10 +137,11 @@
       </div>
     </div>
   </div>
-  <div class="game-footer"><p>Made with &#10084;&#65039; for <a href="index.html">Mini Games Arcade</a></p></div>
+  <div class="game-footer"><p>Made with &#10084;&#65039; for <a href="../index.html">Mini Games Arcade</a></p></div>
 </div>
 
 <script>
+(function(){var k='mg_plays_snake',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
 var GRID = 20;

@@ -1,0 +1,20 @@
+{
+  "name": "Mini Games Arcade",
+  "short_name": "Mini Games",
+  "description": "Play 15+ browser-based mini arcade games offline — no installs, no signups!",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f0a1e",
+  "theme_color": "#0f0a1e",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["games", "entertainment"]
+}

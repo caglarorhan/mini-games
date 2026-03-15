@@ -51,7 +51,7 @@
 <body>
 <div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div></div>
 <div class="top-bar">
-    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <a href="../index.html" class="back-link">&#8592; Back to Games</a>
     <span class="game-badge">&#127925; Memory</span>
 </div>
 <header><h1>Simon Says</h1><p>Watch the pattern, then repeat it!</p></header>
@@ -72,6 +72,7 @@
 </div>
 <div class="game-footer">Simon Says &bull; Mini Games Arcade</div>
 <script>
+(function(){var k='mg_plays_simon',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
 (function(){
     const pads=document.querySelectorAll('.pad');
     const hRound=document.getElementById('hRound'),hBest=document.getElementById('hBest');

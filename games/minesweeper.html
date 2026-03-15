@@ -63,7 +63,7 @@
 <body>
 <div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div></div>
 <div class="top-bar">
-    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <a href="../index.html" class="back-link">&#8592; Back to Games</a>
     <span class="game-badge">&#128163; Mines</span>
 </div>
 <header><h1>Minesweeper</h1><p>Clear the board without hitting a mine!</p></header>
@@ -90,6 +90,7 @@
 </div>
 <div class="game-footer">Minesweeper &bull; Mini Games Arcade</div>
 <script>
+(function(){var k='mg_plays_minesweeper',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
 (function(){
     const CONFIGS={easy:{rows:9,cols:9,mines:10},medium:{rows:12,cols:12,mines:25},hard:{rows:16,cols:16,mines:50}};
     let cfg=CONFIGS.easy;
@@ -221,6 +222,7 @@
         }
         if(unrevealed===cfg.mines){
             gameOver=true;clearInterval(timerInt);
+            var _b=localStorage.getItem('mg_best_minesweeper');if(_b===null||seconds<+_b)localStorage.setItem('mg_best_minesweeper',String(seconds));
             msgEl.textContent='\uD83C\uDF89 You cleared the board in '+seconds+'s!';msgEl.className='msg win';
         }
     }

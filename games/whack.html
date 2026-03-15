@@ -57,7 +57,7 @@
 <body>
 <div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div></div>
 <div class="top-bar">
-    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <a href="../index.html" class="back-link">&#8592; Back to Games</a>
     <span class="game-badge">&#128296; Whack!</span>
 </div>
 <header><h1>Whack-a-Mole</h1><p>Bonk the moles before they hide!</p></header>
@@ -85,6 +85,7 @@
 
 <div class="game-footer">Whack-a-Mole &bull; Mini Games Arcade</div>
 <script>
+(function(){var k='mg_plays_whack',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
 (function(){
     const board=document.getElementById('board');
     const hScore=document.getElementById('hScore'),hTime=document.getElementById('hTime'),hBest=document.getElementById('hBest'),hMiss=document.getElementById('hMiss');

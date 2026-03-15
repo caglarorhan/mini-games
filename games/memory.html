@@ -88,7 +88,7 @@
 <div class="bg-shapes"><div class="blob"></div><div class="blob"></div><div class="blob"></div></div>
 <div class="page-content">
   <div class="top-bar">
-    <a href="index.html" class="back-link">&#8592; Home</a>
+    <a href="../index.html" class="back-link">&#8592; Home</a>
     <span class="game-badge">Brain &middot; Chill</span>
   </div>
   <header>
@@ -113,10 +113,11 @@
       <button id="play-again">Play Again</button>
     </div>
   </div>
-  <div class="game-footer"><p>Made with &#10084;&#65039; for <a href="index.html">Mini Games Arcade</a></p></div>
+  <div class="game-footer"><p>Made with &#10084;&#65039; for <a href="../index.html">Mini Games Arcade</a></p></div>
 </div>
 
 <script>
+(function(){var k='mg_plays_memory',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
 var EMOJIS = ['&#128049;','&#128054;','&#128025;','&#129412;','&#128038;','&#127800;','&#127803;','&#127752;','&#9978;&#65039;','&#127942;','&#128142;','&#127880;','&#128640;','&#127775;','&#128171;'];
 var boardEl = document.getElementById('board');
 var movesEl = document.getElementById('moves-val');
@@ -205,6 +206,7 @@ function onCardClick() {
 
       if (matchedCount === pairCount) {
         clearInterval(timer);
+        var _b=localStorage.getItem('mg_best_memory');if(_b===null||moves<+_b)localStorage.setItem('mg_best_memory',String(moves));
         var m = Math.floor(seconds / 60);
         var s = seconds % 60;
         winStats.textContent = moves + ' moves in ' + m + ':' + (s < 10 ? '0' : '') + s;

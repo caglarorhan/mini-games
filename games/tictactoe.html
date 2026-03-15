@@ -123,7 +123,7 @@
 </div>
 
 <div class="top-bar">
-    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <a href="../index.html" class="back-link">&#8592; Back to Games</a>
     <span class="game-badge">&#10006; &#9711; Strategy</span>
 </div>
 
@@ -159,6 +159,7 @@
 <div class="game-footer">Tic Tac Toe &bull; Mini Games Arcade</div>
 
 <script>
+(function(){var k='mg_plays_tictactoe',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
 (function(){
     const WIN_LINES = [
         [0,1,2],[3,4,5],[6,7,8],
@@ -236,6 +237,7 @@
             scores[player]++;
             totalGames++;
             updateScores();
+            if(player==='X')localStorage.setItem('mg_best_tictactoe',String(scores.X));
             statusEl.className = 'status-bar winner';
             statusEl.textContent = player === 'X' ? 'You win! \uD83C\uDF89' : 'AI wins! \uD83E\uDD16';
             return;

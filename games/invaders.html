@@ -45,7 +45,7 @@
 <body>
 <div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div></div>
 <div class="top-bar">
-    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <a href="../index.html" class="back-link">&#8592; Back to Games</a>
     <span class="game-badge">&#128640; Invaders</span>
 </div>
 <header><h1>Space Invaders</h1><p>Defend Earth from the alien invasion!</p></header>
@@ -72,6 +72,7 @@
 </div>
 <div class="game-footer">Space Invaders &bull; Mini Games Arcade</div>
 <script>
+(function(){var k='mg_plays_invaders',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
 (function(){
     const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
     const W=canvas.width,H=canvas.height;
@@ -252,6 +253,7 @@
 
     function endGame(){
         state='dead';
+        var _b=+localStorage.getItem('mg_best_invaders')||0;if(score>_b)localStorage.setItem('mg_best_invaders',String(score));
         oTitle.textContent='Game Over!';oSub.textContent='Press Space or Tap Fire to Retry';
         oScore.style.display='block';oScore.textContent='Score: '+score+' | Wave: '+wave;
         document.getElementById('startBtn').textContent='Retry';

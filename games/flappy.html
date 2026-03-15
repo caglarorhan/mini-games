@@ -41,7 +41,7 @@
 <body>
 <div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div></div>
 <div class="top-bar">
-    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <a href="../index.html" class="back-link">&#8592; Back to Games</a>
     <span class="game-badge">&#128038; Flappy</span>
 </div>
 <header><h1>Flappy Bird</h1><p>Tap to fly &mdash; don't hit the pipes!</p></header>
@@ -62,6 +62,7 @@
 </div>
 <div class="game-footer">Flappy Bird &bull; Mini Games Arcade</div>
 <script>
+(function(){var k='mg_plays_flappy',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
 (function(){
     const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
     const W=canvas.width,H=canvas.height;

@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>🎮 Mini Games Arcade — Play Now!</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f0a1e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mini Games">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
     <style>
         /* ==================== RESET & BASE ==================== */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1122,6 +1128,231 @@
             .featured-emoji { font-size: 4rem; }
             .featured-title { font-size: 1.5rem; }
             .cta-box { padding: 30px 20px; }
+            .games-grid { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+            .card-art { height: 140px; }
+        }
+
+        @media (max-width: 480px) {
+            .hero { padding: 50px 16px 24px; }
+            .hero-title { font-size: 2.2rem; }
+            .hero-subtitle { font-size: 0.95rem; margin-bottom: 24px; }
+            .hero-badge { font-size: 0.75rem; padding: 5px 14px; }
+            .stats-bar { gap: 16px; padding: 0 16px 24px; }
+            .stat-number { font-size: 1.5rem; }
+            .games-grid { grid-template-columns: 1fr; gap: 16px; }
+            .card-art { height: 130px; }
+            .card-info { padding: 14px; }
+            .card-title { font-size: 1.1rem; }
+            .card-desc { font-size: 0.82rem; margin-bottom: 12px; }
+            .featured-card { padding: 24px 16px; }
+            .featured-title { font-size: 1.2rem; }
+            .featured-emoji { font-size: 3rem; }
+            .how-step { padding: 20px 16px; }
+        }
+
+        /* ==================== SEARCH & FILTER ==================== */
+        .search-section {
+            max-width: 1200px;
+            margin: 0 auto 24px;
+            padding: 0 20px;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 14px 20px 14px 48px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: var(--bg-card);
+            color: var(--text-light);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='%23a99ec4' viewBox='0 0 24 24'%3E%3Cpath d='M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 16px center;
+        }
+
+        .search-input::placeholder { color: var(--text-muted); }
+        .search-input:focus { border-color: var(--cyan); box-shadow: 0 0 20px rgba(0,229,255,0.15); }
+
+        .filter-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tag {
+            padding: 8px 16px;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: capitalize;
+        }
+
+        .filter-tag:hover { border-color: var(--cyan); color: var(--text-light); }
+        .filter-tag.active { background: var(--cyan); color: var(--bg-dark); border-color: var(--cyan); }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            display: none;
+            grid-column: 1 / -1;
+        }
+
+        /* ==================== MY SCORES ==================== */
+        .scores-section {
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            padding: 0 20px;
+        }
+
+        .scores-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 16px 24px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .scores-toggle:hover { background: rgba(26,19,51,0.8); }
+        .scores-toggle h2 { font-size: 1.2rem; font-weight: 800; margin: 0; }
+        .scores-toggle .toggle-arrow { font-size: 1.2rem; transition: transform 0.3s; color: var(--text-muted); }
+        .scores-toggle.open .toggle-arrow { transform: rotate(180deg); }
+
+        .scores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 10px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+            padding: 0;
+        }
+
+        .scores-grid.open {
+            max-height: 1200px;
+            padding-top: 14px;
+        }
+
+        .score-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 12px 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.2s;
+        }
+
+        .score-card:hover { transform: translateY(-2px); }
+        .score-card .sc-emoji { font-size: 1.4rem; }
+        .score-card .sc-info { flex: 1; min-width: 0; }
+        .score-card .sc-name { font-size: 0.8rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .score-card .sc-val { font-size: 1rem; font-weight: 900; color: var(--yellow); }
+        .score-card .sc-plays { font-size: 0.65rem; color: var(--text-muted); }
+
+        /* ==================== MOST PLAYED ==================== */
+        .popular-section {
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            padding: 0 20px;
+        }
+
+        .popular-section .section-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 16px; }
+
+        .popular-scroll {
+            display: flex;
+            gap: 14px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .popular-scroll::-webkit-scrollbar { height: 4px; }
+        .popular-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 4px; }
+        .popular-scroll::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 4px; }
+
+        .popular-card {
+            flex: 0 0 140px;
+            scroll-snap-align: start;
+            background: var(--bg-card);
+            border-radius: 14px;
+            padding: 16px 12px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .popular-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .popular-rank { font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .popular-rank.gold { color: var(--yellow); }
+        .popular-rank.silver { color: #c0c0c0; }
+        .popular-rank.bronze { color: #cd7f32; }
+        .popular-emoji { font-size: 1.8rem; margin-bottom: 6px; display: block; }
+        .popular-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 2px; }
+        .popular-plays { font-size: 0.7rem; color: var(--text-muted); }
+
+        .popular-empty { color: var(--text-muted); font-size: 0.9rem; padding: 20px; text-align: center; width: 100%; }
+
+        /* ==================== INSTALL PROMPT ==================== */
+        .install-banner {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--purple), var(--pink));
+            color: white;
+            padding: 14px 24px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(168,85,247,0.4);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            border: none;
+            white-space: nowrap;
+        }
+
+        .install-banner:hover { filter: brightness(1.1); }
+        .install-banner .ib-x { background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 1.1rem; padding: 0 0 0 8px; }
+
+        @media (max-width: 480px) {
+            .scores-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+            .popular-card { flex: 0 0 120px; padding: 14px 10px; }
+            .popular-emoji { font-size: 1.5rem; }
+            .filter-tag { padding: 6px 12px; font-size: 0.75rem; }
+            .search-input { padding: 12px 16px 12px 44px; font-size: 0.9rem; }
+            .install-banner { font-size: 0.8rem; padding: 12px 18px; bottom: 12px; }
         }
 
         /* ==================== CONFETTI CLICK EFFECT ==================== */
@@ -1219,6 +1450,23 @@
             </div>
         </div>
 
+        <!-- ========== MOST PLAYED ========== -->
+        <section class="popular-section" id="popularSection">
+            <div class="section-title">🔥 Most Played</div>
+            <div class="popular-scroll" id="popularScroll">
+                <div class="popular-empty">Play some games to see your favorites here!</div>
+            </div>
+        </section>
+
+        <!-- ========== MY SCORES ========== -->
+        <section class="scores-section" id="scoresSection">
+            <div class="scores-toggle" id="scoresToggle">
+                <h2>🏆 My Scores</h2>
+                <span class="toggle-arrow">▼</span>
+            </div>
+            <div class="scores-grid" id="scoresGrid"></div>
+        </section>
+
         <!-- ========== FEATURED GAME ========== -->
         <section class="featured-section reveal">
             <div class="section-header">
@@ -1234,7 +1482,7 @@
                         The legendary block-stacking game that defined a generation. Stack 'em,
                         clear lines, watch the speed climb. Simple rules, infinite addiction. 😏
                     </p>
-                    <a href="tetris.html" style="text-decoration:none"><button class="featured-btn" onclick="confettiBurst(event)">▶ Play Now — It's Free!</button></a>
+                    <a href="games/tetris.html" style="text-decoration:none"><button class="featured-btn" onclick="confettiBurst(event)">▶ Play Now — It's Free!</button></a>
                 </div>
             </div>
         </section>
@@ -1246,10 +1494,28 @@
                 <p>All games run right in your browser — no installs, no signups, no nonsense.</p>
             </div>
 
+            <!-- Search & Filter -->
+            <div class="search-section">
+                <div class="search-bar">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search games..." autocomplete="off">
+                </div>
+                <div class="filter-tags" id="filterTags">
+                    <button class="filter-tag active" data-filter="all">All</button>
+                    <button class="filter-tag" data-filter="classic">Classic</button>
+                    <button class="filter-tag" data-filter="action">Action</button>
+                    <button class="filter-tag" data-filter="brain">Brain</button>
+                    <button class="filter-tag" data-filter="puzzle">Puzzle</button>
+                    <button class="filter-tag" data-filter="reflex">Reflex</button>
+                    <button class="filter-tag" data-filter="arcade">Arcade</button>
+                    <button class="filter-tag" data-filter="retro">Retro</button>
+                    <button class="filter-tag" data-filter="strategy">Strategy</button>
+                </div>
+            </div>
+
             <div class="games-grid">
 
                 <!-- Tetris -->
-                <a href="tetris.html" class="game-card card-tetris reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/tetris.html" class="game-card card-tetris reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="tetris-art">
@@ -1290,7 +1556,7 @@
                 </a>
 
                 <!-- Snake -->
-                <a href="snake.html" class="game-card card-snake reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/snake.html" class="game-card card-snake reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="snake-art">
@@ -1317,7 +1583,7 @@
                 </a>
 
                 <!-- Memory Match -->
-                <a href="memory.html" class="game-card card-memory reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/memory.html" class="game-card card-memory reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="memory-art">
@@ -1344,7 +1610,7 @@
                 </a>
 
                 <!-- Pong -->
-                <a href="pong.html" class="game-card card-pong reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/pong.html" class="game-card card-pong reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="pong-art">
@@ -1369,7 +1635,7 @@
                 </a>
 
                 <!-- Tic Tac Toe -->
-                <a href="tictactoe.html" class="game-card card-tictac reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/tictactoe.html" class="game-card card-tictac reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="tictac-art">
@@ -1399,7 +1665,7 @@
                 </a>
 
                 <!-- Endless Runner -->
-                <a href="runner.html" class="game-card card-runner reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/runner.html" class="game-card card-runner reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="runner-art">
@@ -1424,7 +1690,7 @@
                 </a>
 
                 <!-- Sliding Puzzle -->
-                <a href="puzzle.html" class="game-card card-puzzle reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/puzzle.html" class="game-card card-puzzle reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="puzzle-art">
@@ -1454,7 +1720,7 @@
                 </a>
 
                 <!-- Breakout -->
-                <a href="breakout.html" class="game-card card-breakout reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/breakout.html" class="game-card card-breakout reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="breakout-art">
@@ -1489,7 +1755,7 @@
                 </a>
 
                 <!-- Flappy Bird -->
-                <a href="flappy.html" class="game-card card-flappy reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/flappy.html" class="game-card card-flappy reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="flappy-art">
@@ -1515,7 +1781,7 @@
                 </a>
 
                 <!-- Whack-a-Mole -->
-                <a href="whack.html" class="game-card card-whack reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/whack.html" class="game-card card-whack reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="whack-art">
@@ -1545,7 +1811,7 @@
                 </a>
 
                 <!-- 2048 -->
-                <a href="2048.html" class="game-card card-2048 reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/2048.html" class="game-card card-2048 reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="game2048-art">
@@ -1582,7 +1848,7 @@
                 </a>
 
                 <!-- Minesweeper -->
-                <a href="minesweeper.html" class="game-card card-minesweeper reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/minesweeper.html" class="game-card card-minesweeper reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="mines-art">
@@ -1619,7 +1885,7 @@
                 </a>
 
                 <!-- Space Invaders -->
-                <a href="invaders.html" class="game-card card-invaders reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/invaders.html" class="game-card card-invaders reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="invaders-art">
@@ -1659,7 +1925,7 @@
                 </a>
 
                 <!-- Simon Says -->
-                <a href="simon.html" class="game-card card-simon reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/simon.html" class="game-card card-simon reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="simon-art">
@@ -1684,7 +1950,7 @@
                 </a>
 
                 <!-- Asteroids -->
-                <a href="asteroids.html" class="game-card card-asteroids reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
+                <a href="games/asteroids.html" class="game-card card-asteroids reveal" style="text-decoration:none;color:inherit" onclick="confettiBurst(event)">
                     <div class="card-art">
                         <div class="card-art-bg"></div>
                         <div class="asteroids-art">
@@ -1707,6 +1973,8 @@
                         </div>
                     </div>
                 </a>
+
+                <div class="no-results" id="noResults">😕 No games found. Try a different search!</div>
 
             </div>
         </section>
@@ -1763,7 +2031,51 @@
 
     </div>
 
+    <!-- Install Prompt -->
+    <button class="install-banner" id="installBanner">📲 Install App <span class="ib-x" id="installDismiss">&times;</span></button>
+
     <script>
+        // ==================== GAME REGISTRY ====================
+        const GAMES = [
+            { id:'tetris',  file:'games/tetris.html',  title:'Tetris',         emoji:'🧱', tags:['classic','brain'],    scoreKey:'mg_best_tetris',  scoreLabel:'Score' },
+            { id:'snake',   file:'games/snake.html',   title:'Snake',          emoji:'🐍', tags:['classic','reflex'],   scoreKey:'snake_high',      scoreLabel:'Score' },
+            { id:'memory',  file:'games/memory.html',  title:'Memory Match',   emoji:'🃏', tags:['brain','chill'],      scoreKey:'mg_best_memory',  scoreLabel:'Moves', lowerBetter:true },
+            { id:'pong',    file:'games/pong.html',     title:'Pong',           emoji:'🏓', tags:['classic','action'],   scoreKey:'mg_best_pong',    scoreLabel:'Score' },
+            { id:'tictactoe',file:'games/tictactoe.html',title:'Tic Tac Toe',  emoji:'❌', tags:['strategy','brain'],   scoreKey:'mg_best_tictactoe',scoreLabel:'Wins' },
+            { id:'runner',  file:'games/runner.html',   title:'Endless Runner', emoji:'🏃', tags:['action','reflex'],    scoreKey:'runner_best',     scoreLabel:'Score' },
+            { id:'puzzle',  file:'games/puzzle.html',   title:'Sliding Puzzle', emoji:'🧩', tags:['brain','chill'],      scoreKey:'puzzle_best_3',   scoreLabel:'Moves', lowerBetter:true },
+            { id:'breakout',file:'games/breakout.html', title:'Breakout',       emoji:'🧱', tags:['arcade','classic'],   scoreKey:'mg_best_breakout',scoreLabel:'Score' },
+            { id:'flappy',  file:'games/flappy.html',   title:'Flappy Bird',    emoji:'🐦', tags:['reflex','action'],    scoreKey:'flappy_best',     scoreLabel:'Score' },
+            { id:'whack',   file:'games/whack.html',    title:'Whack-a-Mole',   emoji:'🔨', tags:['reflex','action'],    scoreKey:'whack_best',      scoreLabel:'Score' },
+            { id:'2048',    file:'games/2048.html',      title:'2048',           emoji:'🔢', tags:['puzzle','brain'],     scoreKey:'g2048_best',      scoreLabel:'Score' },
+            { id:'minesweeper',file:'games/minesweeper.html',title:'Minesweeper',emoji:'💣', tags:['strategy','brain'],  scoreKey:'mg_best_minesweeper',scoreLabel:'Sec', lowerBetter:true },
+            { id:'invaders',file:'games/invaders.html', title:'Space Invaders', emoji:'🚀', tags:['retro','action'],     scoreKey:'mg_best_invaders',scoreLabel:'Score' },
+            { id:'simon',   file:'games/simon.html',    title:'Simon Says',     emoji:'🎵', tags:['memory','brain'],     scoreKey:'simon_best',      scoreLabel:'Round' },
+            { id:'asteroids',file:'games/asteroids.html',title:'Asteroids',     emoji:'☄️', tags:['retro','arcade'],     scoreKey:'mg_best_asteroids',scoreLabel:'Score' },
+        ];
+
+        // ==================== SERVICE WORKER ====================
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+        }
+
+        // ==================== INSTALL PROMPT ====================
+        let deferredPrompt = null;
+        const installBanner = document.getElementById('installBanner');
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBanner.style.display = 'flex';
+        });
+        installBanner.addEventListener('click', () => {
+            if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
+            installBanner.style.display = 'none';
+        });
+        document.getElementById('installDismiss').addEventListener('click', e => {
+            e.stopPropagation();
+            installBanner.style.display = 'none';
+        });
+
         // ==================== STARFIELD ====================
         (function createStars() {
             const field = document.getElementById('starfield');
@@ -1784,22 +2096,15 @@
         // ==================== SCROLL REVEAL ====================
         const reveals = document.querySelectorAll('.reveal');
         const revealObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                }
-            });
+            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
         }, { threshold: 0.1 });
-
         reveals.forEach(el => revealObserver.observe(el));
 
-        // ==================== CONFETTI BURST ON CLICK ====================
+        // ==================== CONFETTI ====================
         const confettiColors = ['#ff6b9d', '#ff8a47', '#ffd166', '#06d6a0', '#00e5ff', '#a855f7', '#7c3aed'];
-
         function confettiBurst(e) {
             const x = e.clientX || e.touches?.[0]?.clientX || window.innerWidth / 2;
             const y = e.clientY || e.touches?.[0]?.clientY || window.innerHeight / 2;
-
             for (let i = 0; i < 18; i++) {
                 const conf = document.createElement('div');
                 conf.className = 'confetti';
@@ -1813,7 +2118,7 @@
             }
         }
 
-        // ==================== ANIMATED NUMBER COUNTER ====================
+        // ==================== COUNTER ANIMATION ====================
         function animateCounter(el, target, suffix = '') {
             const isK = typeof target === 'string' && target.includes('K');
             let num = isK ? parseFloat(target) : parseInt(target);
@@ -1821,36 +2126,142 @@
             const step = num / 40;
             const interval = setInterval(() => {
                 current += step;
-                if (current >= num) {
-                    current = num;
-                    clearInterval(interval);
-                }
-                if (isK) {
-                    el.textContent = current.toFixed(1) + 'K';
-                } else {
-                    el.textContent = Math.floor(current) + suffix;
-                }
+                if (current >= num) { current = num; clearInterval(interval); }
+                el.textContent = isK ? current.toFixed(1) + 'K' : Math.floor(current) + suffix;
             }, 40);
         }
 
-        // Run counters when stats come into view
         const statsObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    animateCounter(document.getElementById('stat-games'), '12', '+');
+                    animateCounter(document.getElementById('stat-games'), '15', '');
                     animateCounter(document.getElementById('stat-players'), '4.2K');
                     animateCounter(document.getElementById('stat-played'), '87K');
                     statsObserver.disconnect();
                 }
             });
         }, { threshold: 0.5 });
-
         statsObserver.observe(document.querySelector('.stats-bar'));
 
         // ==================== STAGGER CARD REVEALS ====================
         document.querySelectorAll('.game-card.reveal').forEach((card, i) => {
-            card.style.transitionDelay = (i * 0.1) + 's';
+            card.style.transitionDelay = (i * 0.08) + 's';
         });
+
+        // ==================== SEARCH & FILTER ====================
+        const searchInput = document.getElementById('searchInput');
+        const filterTags = document.querySelectorAll('.filter-tag');
+        const gameCards = document.querySelectorAll('.game-card');
+        const noResults = document.getElementById('noResults');
+        let activeFilter = 'all';
+
+        // Tag game cards with data attributes via JS (avoids editing every card)
+        gameCards.forEach(card => {
+            const href = card.getAttribute('href');
+            const game = GAMES.find(g => g.file === href);
+            if (game) {
+                card.dataset.game = game.id;
+                card.dataset.tags = game.tags.join(',');
+                card.dataset.title = game.title.toLowerCase();
+            }
+        });
+
+        function filterGames() {
+            const query = searchInput.value.toLowerCase().trim();
+            let visible = 0;
+            gameCards.forEach(card => {
+                const title = card.dataset.title || '';
+                const tags = card.dataset.tags || '';
+                const matchSearch = !query || title.includes(query) || tags.includes(query);
+                const matchFilter = activeFilter === 'all' || tags.includes(activeFilter);
+                const show = matchSearch && matchFilter;
+                card.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+            noResults.style.display = visible === 0 ? 'block' : 'none';
+        }
+
+        searchInput.addEventListener('input', filterGames);
+        filterTags.forEach(tag => {
+            tag.addEventListener('click', () => {
+                filterTags.forEach(t => t.classList.remove('active'));
+                tag.classList.add('active');
+                activeFilter = tag.dataset.filter;
+                filterGames();
+            });
+        });
+
+        // ==================== MY SCORES ====================
+        const scoresToggle = document.getElementById('scoresToggle');
+        const scoresGrid = document.getElementById('scoresGrid');
+
+        scoresToggle.addEventListener('click', () => {
+            scoresToggle.classList.toggle('open');
+            scoresGrid.classList.toggle('open');
+        });
+
+        function buildScores() {
+            scoresGrid.innerHTML = '';
+            let hasAny = false;
+            GAMES.forEach(g => {
+                const best = localStorage.getItem(g.scoreKey);
+                const plays = +localStorage.getItem('mg_plays_' + g.id) || 0;
+                if (!best && !plays) return;
+                hasAny = true;
+                const a = document.createElement('a');
+                a.href = g.file;
+                a.className = 'score-card';
+                a.innerHTML = '<span class="sc-emoji">' + g.emoji + '</span>'
+                    + '<div class="sc-info">'
+                    + '<div class="sc-name">' + g.title + '</div>'
+                    + (best ? '<div class="sc-val">' + g.scoreLabel + ': ' + best + '</div>' : '')
+                    + '<div class="sc-plays">' + plays + ' play' + (plays !== 1 ? 's' : '') + '</div>'
+                    + '</div>';
+                scoresGrid.appendChild(a);
+            });
+            if (!hasAny) {
+                scoresGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px;font-size:.9rem;">Play some games to see your scores here!</div>';
+            }
+        }
+        buildScores();
+
+        // ==================== MOST PLAYED ====================
+        function buildPopular() {
+            const scroll = document.getElementById('popularScroll');
+            const played = GAMES.map(g => ({ ...g, plays: +localStorage.getItem('mg_plays_' + g.id) || 0 }))
+                .filter(g => g.plays > 0)
+                .sort((a, b) => b.plays - a.plays)
+                .slice(0, 10);
+            if (!played.length) {
+                scroll.innerHTML = '<div class="popular-empty">🎮 Play some games to see your favorites here!</div>';
+                return;
+            }
+            scroll.innerHTML = '';
+            played.forEach((g, i) => {
+                const a = document.createElement('a');
+                a.href = g.file;
+                a.className = 'popular-card';
+                const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+                a.innerHTML = '<div class="popular-rank ' + rankClass + '">#' + (i + 1) + '</div>'
+                    + '<span class="popular-emoji">' + g.emoji + '</span>'
+                    + '<div class="popular-title">' + g.title + '</div>'
+                    + '<div class="popular-plays">' + g.plays + ' play' + (g.plays !== 1 ? 's' : '') + '</div>';
+                scroll.appendChild(a);
+            });
+        }
+        buildPopular();
+
+        // ==================== FEATURED GAME (RANDOM) ====================
+        (function() {
+            const g = GAMES[Math.floor(Math.random() * GAMES.length)];
+            const emoji = document.querySelector('.featured-emoji');
+            const title = document.querySelector('.featured-title');
+            const btn = document.querySelector('.featured-btn');
+            const link = btn?.closest('a') || btn?.parentElement?.closest('a');
+            if (emoji) emoji.textContent = g.emoji;
+            if (title) title.textContent = g.title;
+            if (link) link.href = g.file;
+        })();
     </script>
 </body>
 </html>

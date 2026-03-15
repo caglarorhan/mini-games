@@ -94,7 +94,7 @@
 </div>
 
 <div class="top-bar">
-    <a href="index.html" class="back-link">&#8592; Back to Games</a>
+    <a href="../index.html" class="back-link">&#8592; Back to Games</a>
     <span class="game-badge">&#127939; Runner</span>
 </div>
 
@@ -128,6 +128,7 @@
 <div class="game-footer">Endless Runner &bull; Mini Games Arcade</div>
 
 <script>
+(function(){var k='mg_plays_runner',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
 (function(){
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
