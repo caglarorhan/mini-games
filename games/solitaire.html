@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🃏 Solitaire — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--blue);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--blue));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:14px 20px 6px}
+header h1{font-size:1.8rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:2px;font-size:.85rem}
+.game-container{position:relative;z-index:10;max-width:500px;margin:6px auto;padding:0 8px}
+.hud{display:flex;justify-content:space-around;margin-bottom:6px;gap:6px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:6px 10px;text-align:center;flex:1}
+.hud-box .label{font-size:.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1rem;font-weight:800;margin-top:1px}
+.s-val{color:var(--green)}.m-val{color:var(--cyan)}.w-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:12px;overflow:hidden;border:2px solid var(--border);background:#0a3018}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--cyan));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:16px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🃏 Solitaire</span></div>
+<header><h1>Solitaire</h1><p>Klondike — Move all cards to foundations!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Moves</div><div class="value m-val" id="hMoves">0</div></div>
+        <div class="hud-box"><div class="label">Wins</div><div class="value w-val" id="hWins">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="490" height="580"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Solitaire</h2>
+            <div class="sub" id="oSub">Classic Klondike Solitaire.<br>Tap cards to move them!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Deal!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Solitaire &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_solitaire',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hMoves=document.getElementById('hMoves'),hWins=document.getElementById('hWins');
+const WINS_KEY='solitaire_wins';
+let winsTotal=+localStorage.getItem(WINS_KEY)||0;hWins.textContent=winsTotal;
+
+const CW=60,CH=84,PAD=8,SUITS=['♠','♥','♦','♣'],SUIT_COLORS={'♠':'#e0e0e0','♥':'#ff6b9d','♦':'#ff8a47','♣':'#e0e0e0'};
+const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+function makeDeck(){
+    const d=[];SUITS.forEach(s=>RANKS.forEach((r,i)=>d.push({suit:s,rank:r,value:i,faceUp:false})));
+    for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+    return d;
+}
+
+let tableau,foundations,stock,waste,score,moves,state='idle',selected;
+
+function startGame(){
+    const deck=makeDeck();
+    tableau=[[],[],[],[],[],[],[]];
+    foundations=[[],[],[],[]];
+    stock=[];waste=[];
+    for(let c=0;c<7;c++){for(let i=0;i<=c;i++){const card=deck.pop();if(i===c)card.faceUp=true;tableau[c].push(card);}}
+    stock=deck.reverse();
+    score=0;moves=0;selected=null;state='running';
+    overlay.classList.add('hidden');updateHUD();draw();
+}
+
+function updateHUD(){hScore.textContent=score;hMoves.textContent=moves;}
+
+function cardColor(suit){return suit==='♥'||suit==='♦'?'red':'black';}
+
+function canStackTableau(card,target){
+    if(!target)return card.rank==='K';
+    return target.faceUp&&cardColor(card.suit)!==cardColor(target.suit)&&card.value===target.value-1;
+}
+
+function canStackFoundation(card,pile){
+    if(!pile.length)return card.rank==='A';
+    const top=pile[pile.length-1];
+    return card.suit===top.suit&&card.value===top.value+1;
+}
+
+// Layout helpers
+function stockPos(){return{x:PAD,y:PAD};}
+function wastePos(){return{x:PAD+CW+PAD,y:PAD};}
+function foundPos(i){return{x:PAD+(3+i)*(CW+PAD),y:PAD};}
+function tabPos(c,r){return{x:PAD+c*(CW+PAD),y:100+r*22};}
+
+function drawCard(x,y,card,highlight){
+    ctx.fillStyle=highlight?'#2a1f5e':'#1e1848';
+    ctx.strokeStyle=highlight?'#00e5ff':'#3a2d6e';
+    ctx.lineWidth=highlight?2:1;
+    ctx.beginPath();ctx.roundRect(x,y,CW,CH,6);ctx.fill();ctx.stroke();
+    if(!card.faceUp){
+        ctx.fillStyle='#2a1f4e';ctx.beginPath();ctx.roundRect(x+4,y+4,CW-8,CH-8,4);ctx.fill();
+        ctx.strokeStyle='#3d2d6b';ctx.beginPath();ctx.roundRect(x+4,y+4,CW-8,CH-8,4);ctx.stroke();
+        return;
+    }
+    ctx.fillStyle=SUIT_COLORS[card.suit];ctx.font='bold 14px sans-serif';ctx.textAlign='left';
+    ctx.fillText(card.rank,x+5,y+16);ctx.fillText(card.suit,x+5,y+32);
+    ctx.textAlign='right';ctx.fillText(card.rank,x+CW-5,y+CH-8);ctx.fillText(card.suit,x+CW-5,y+CH-22);
+    ctx.font='24px sans-serif';ctx.textAlign='center';ctx.fillText(card.suit,x+CW/2,y+CH/2+8);
+}
+
+function drawEmpty(x,y,label){
+    ctx.strokeStyle='#2a1f4e';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.roundRect(x,y,CW,CH,6);ctx.stroke();ctx.setLineDash([]);
+    if(label){ctx.fillStyle='#3a2d6e';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText(label,x+CW/2,y+CH/2+4);}
+}
+
+function draw(){
+    ctx.fillStyle='#0a3018';ctx.fillRect(0,0,W,H);
+    // Stock
+    if(stock.length)drawCard(stockPos().x,stockPos().y,{faceUp:false});
+    else drawEmpty(stockPos().x,stockPos().y,'↻');
+    // Waste
+    if(waste.length){const c=waste[waste.length-1];drawCard(wastePos().x,wastePos().y,c,isSelected('waste',waste.length-1));}
+    else drawEmpty(wastePos().x,wastePos().y);
+    // Foundations
+    for(let i=0;i<4;i++){
+        const p=foundPos(i);
+        if(foundations[i].length){drawCard(p.x,p.y,foundations[i][foundations[i].length-1]);}
+        else drawEmpty(p.x,p.y,SUITS[i]);
+    }
+    // Tableau
+    for(let c=0;c<7;c++){
+        if(!tableau[c].length){drawEmpty(tabPos(c,0).x,tabPos(c,0).y);continue;}
+        tableau[c].forEach((card,r)=>{
+            const p=tabPos(c,r);
+            drawCard(p.x,p.y,card,isSelected('tab',c,r));
+        });
+    }
+}
+
+function isSelected(type,a,b){
+    if(!selected)return false;
+    if(type==='waste'&&selected.type==='waste')return true;
+    if(type==='tab'&&selected.type==='tab'&&selected.col===a&&b>=selected.row)return true;
+    return false;
+}
+
+function handleClick(clientX,clientY){
+    if(state!=='running')return;
+    const rect=canvas.getBoundingClientRect();
+    const mx=(clientX-rect.left)/rect.width*W;
+    const my=(clientY-rect.top)/rect.height*H;
+
+    // Stock click
+    const sp=stockPos();
+    if(mx>=sp.x&&mx<=sp.x+CW&&my>=sp.y&&my<=sp.y+CH){
+        selected=null;
+        if(stock.length){const c=stock.pop();c.faceUp=true;waste.push(c);}
+        else{while(waste.length){const c=waste.pop();c.faceUp=false;stock.push(c);}}
+        moves++;updateHUD();draw();return;
+    }
+
+    // Waste click
+    const wp=wastePos();
+    if(waste.length&&mx>=wp.x&&mx<=wp.x+CW&&my>=wp.y&&my<=wp.y+CH){
+        if(selected&&selected.type==='waste')selected=null;
+        else selected={type:'waste'};draw();return;
+    }
+
+    // Foundation click
+    for(let i=0;i<4;i++){
+        const fp=foundPos(i);
+        if(mx>=fp.x&&mx<=fp.x+CW&&my>=fp.y&&my<=fp.y+CH){
+            if(selected){tryMoveToFoundation(i);return;}
+        }
+    }
+
+    // Tableau click
+    for(let c=0;c<7;c++){
+        const pile=tableau[c];
+        // Click on empty slot
+        if(!pile.length){
+            const p=tabPos(c,0);
+            if(mx>=p.x&&mx<=p.x+CW&&my>=p.y&&my<=p.y+CH){
+                if(selected)tryMoveToTableau(c);
+                return;
+            }
+            continue;
+        }
+        for(let r=pile.length-1;r>=0;r--){
+            const p=tabPos(c,r);
+            const cardH=r===pile.length-1?CH:22;
+            if(mx>=p.x&&mx<=p.x+CW&&my>=p.y&&my<=p.y+cardH){
+                if(!pile[r].faceUp){if(r===pile.length-1){pile[r].faceUp=true;draw();}return;}
+                if(selected){tryMoveToTableau(c);return;}
+                selected={type:'tab',col:c,row:r};draw();return;
+            }
+        }
+    }
+    selected=null;draw();
+}
+
+function tryMoveToFoundation(fi){
+    let card;
+    if(selected.type==='waste'){card=waste[waste.length-1];if(canStackFoundation(card,foundations[fi])){waste.pop();foundations[fi].push(card);score+=10;moves++;}}
+    else if(selected.type==='tab'){
+        const pile=tableau[selected.col];
+        if(selected.row!==pile.length-1){selected=null;draw();return;}
+        card=pile[pile.length-1];
+        if(canStackFoundation(card,foundations[fi])){pile.pop();foundations[fi].push(card);score+=10;moves++;if(pile.length&&!pile[pile.length-1].faceUp)pile[pile.length-1].faceUp=true;}
+    }
+    selected=null;updateHUD();draw();checkWin();
+}
+
+function tryMoveToTableau(tc){
+    const target=tableau[tc].length?tableau[tc][tableau[tc].length-1]:null;
+    if(selected.type==='waste'){
+        const card=waste[waste.length-1];
+        if(canStackTableau(card,target)){waste.pop();tableau[tc].push(card);moves++;}
+    } else if(selected.type==='tab'){
+        const src=tableau[selected.col];
+        const card=src[selected.row];
+        if(canStackTableau(card,target)){
+            const moving=src.splice(selected.row);
+            tableau[tc].push(...moving);moves++;
+            if(src.length&&!src[src.length-1].faceUp)src[src.length-1].faceUp=true;
+        }
+    }
+    selected=null;updateHUD();draw();
+}
+
+// Auto-move to foundation on double-click/tap
+function tryAutoFoundation(card,source,removeCard){
+    for(let i=0;i<4;i++){
+        if(canStackFoundation(card,foundations[i])){
+            removeCard();foundations[i].push(card);score+=10;moves++;
+            updateHUD();draw();checkWin();return true;
+        }
+    }
+    return false;
+}
+
+function checkWin(){
+    if(foundations.every(f=>f.length===13)){
+        state='done';winsTotal++;localStorage.setItem(WINS_KEY,winsTotal);hWins.textContent=winsTotal;
+        oTitle.textContent='You Win!';oSub.textContent='Congratulations!';oScore.textContent='Score: '+score+' | Moves: '+moves;oScore.style.display='block';overlay.classList.remove('hidden');
+    }
+}
+
+canvas.addEventListener('click',e=>handleClick(e.clientX,e.clientY));
+canvas.addEventListener('touchstart',e=>{e.preventDefault();handleClick(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+let lastTap=0;
+canvas.addEventListener('dblclick',e=>{
+    if(state!=='running')return;
+    const rect=canvas.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)/rect.width*W;const my=(e.clientY-rect.top)/rect.height*H;
+    // Double click waste
+    const wp=wastePos();
+    if(waste.length&&mx>=wp.x&&mx<=wp.x+CW&&my>=wp.y&&my<=wp.y+CH){
+        tryAutoFoundation(waste[waste.length-1],'waste',()=>waste.pop());selected=null;return;
+    }
+    // Double click tableau top card
+    for(let c=0;c<7;c++){
+        const pile=tableau[c];if(!pile.length)continue;
+        const top=pile[pile.length-1];if(!top.faceUp)continue;
+        const p=tabPos(c,pile.length-1);
+        if(mx>=p.x&&mx<=p.x+CW&&my>=p.y&&my<=p.y+CH){
+            tryAutoFoundation(top,'tab',()=>{pile.pop();if(pile.length&&!pile[pile.length-1].faceUp)pile[pile.length-1].faceUp=true;});
+            selected=null;return;
+        }
+    }
+});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+draw();
+})();
+</script>
+</body>
+</html>

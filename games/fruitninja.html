@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🍉 Fruit Ninja — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--pink);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--green);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--pink),var(--green));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:480px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--pink)}.l-val{color:var(--orange)}.hi-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#000;cursor:crosshair}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--pink),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--pink);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--pink),var(--green));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🍉 Fruit Ninja</span></div>
+<header><h1>Fruit Ninja</h1><p>Swipe to slice fruit — avoid bombs!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Lives</div><div class="value l-val" id="hLives">3</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="420" height="500"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Fruit Ninja</h2>
+            <div class="sub" id="oSub">Swipe/drag over fruits to slice them!<br>Don't miss, and avoid the bombs! 💣</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Fruit Ninja &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_fruitninja',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hLives=document.getElementById('hLives'),hBest=document.getElementById('hBest');
+const BEST_KEY='fruitninja_best';
+let bestScore=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=bestScore;
+
+const FRUITS=[
+    {emoji:'🍎',color:'#ff4444'},{emoji:'🍊',color:'#ff8a47'},{emoji:'🍋',color:'#ffd166'},
+    {emoji:'🍉',color:'#ff6b9d'},{emoji:'🍇',color:'#a855f7'},{emoji:'🥝',color:'#06d6a0'},
+    {emoji:'🍑',color:'#ff9a76'},{emoji:'🍓',color:'#ff4466'}
+];
+let state='idle',score,lives,fruits,slashes,particles,spawnTimer,animFrame;
+
+function startGame(){
+    score=0;lives=3;fruits=[];slashes=[];particles=[];spawnTimer=0;
+    state='running';overlay.classList.add('hidden');hScore.textContent=0;hLives.textContent=3;
+    if(animFrame)cancelAnimationFrame(animFrame);animFrame=requestAnimationFrame(loop);
+}
+
+function spawnFruit(){
+    const isBomb=Math.random()<0.12;
+    const x=50+Math.random()*(W-100);
+    const vx=(Math.random()-0.5)*4;
+    const vy=-12-Math.random()*5;
+    if(isBomb)fruits.push({x,y:H+20,vx,vy,r:22,bomb:true,sliced:false});
+    else{
+        const f=FRUITS[Math.floor(Math.random()*FRUITS.length)];
+        fruits.push({x,y:H+20,vx,vy,r:22,bomb:false,emoji:f.emoji,color:f.color,sliced:false});
+    }
+}
+
+function loop(){if(state!=='running')return;update();draw();animFrame=requestAnimationFrame(loop);}
+
+function update(){
+    spawnTimer++;
+    if(spawnTimer%35===0){const count=1+Math.floor(score/15);for(let i=0;i<Math.min(count,4);i++)setTimeout(()=>spawnFruit(),i*120);}
+    fruits.forEach(f=>{f.x+=f.vx;f.y+=f.vy;f.vy+=0.22;});
+    // Remove fruits that fell off screen; if not sliced and not bomb, lose life
+    fruits=fruits.filter(f=>{
+        if(f.y>H+50){
+            if(!f.sliced&&!f.bomb){lives--;hLives.textContent=Math.max(0,lives);if(lives<=0)endGame();}
+            return false;
+        }
+        return true;
+    });
+    // Remove old slashes
+    slashes=slashes.filter(s=>{s.life--;return s.life>0;});
+    particles=particles.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.15;p.life--;return p.life>0;});
+}
+
+function draw(){
+    ctx.fillStyle='#0a0618';ctx.fillRect(0,0,W,H);
+    // Slashes
+    slashes.forEach(s=>{ctx.globalAlpha=s.life/10;ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(s.x1,s.y1);ctx.lineTo(s.x2,s.y2);ctx.stroke();});
+    ctx.globalAlpha=1;
+    // Particles
+    particles.forEach(p=>{ctx.globalAlpha=p.life/20;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();});
+    ctx.globalAlpha=1;
+    // Fruits
+    fruits.forEach(f=>{
+        if(f.sliced)return;
+        ctx.font=f.r*1.8+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(f.bomb?'💣':f.emoji,f.x,f.y);
+    });
+    // Sliced halves
+    fruits.forEach(f=>{
+        if(!f.sliced)return;
+        ctx.globalAlpha=0.6;ctx.font=f.r*1.4+'px sans-serif';ctx.textAlign='center';
+        ctx.fillText(f.bomb?'💥':f.emoji,f.x-8,f.y);
+        ctx.fillText(f.bomb?'💥':f.emoji,f.x+8,f.y);
+        ctx.globalAlpha=1;
+    });
+}
+
+function checkSlice(x1,y1,x2,y2){
+    if(state!=='running')return;
+    slashes.push({x1,y1,x2,y2,life:10});
+    fruits.forEach(f=>{
+        if(f.sliced)return;
+        const dx=f.x-(x1+x2)/2,dy=f.y-(y1+y2)/2;
+        if(Math.sqrt(dx*dx+dy*dy)<f.r+15){
+            f.sliced=true;
+            if(f.bomb){lives--;hLives.textContent=Math.max(0,lives);
+                for(let i=0;i<8;i++)particles.push({x:f.x,y:f.y,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8,life:20,color:'#ff4444',size:4});
+                if(lives<=0)endGame();
+            } else {
+                score++;hScore.textContent=score;
+                for(let i=0;i<6;i++)particles.push({x:f.x,y:f.y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:20,color:f.color,size:3+Math.random()*3});
+            }
+        }
+    });
+}
+
+function endGame(){
+    state='dead';if(animFrame)cancelAnimationFrame(animFrame);
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+    oTitle.textContent='Game Over';oSub.textContent='';oScore.textContent='Score: '+score;oScore.style.display='block';overlay.classList.remove('hidden');
+}
+
+let dragging=false,lastX,lastY;
+canvas.addEventListener('mousedown',e=>{dragging=true;const r=canvas.getBoundingClientRect();lastX=(e.clientX-r.left)/r.width*W;lastY=(e.clientY-r.top)/r.height*H;});
+canvas.addEventListener('mousemove',e=>{if(!dragging)return;const r=canvas.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;checkSlice(lastX,lastY,x,y);lastX=x;lastY=y;});
+canvas.addEventListener('mouseup',()=>dragging=false);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state!=='running'){startGame();return;}dragging=true;const r=canvas.getBoundingClientRect();lastX=(e.touches[0].clientX-r.left)/r.width*W;lastY=(e.touches[0].clientY-r.top)/r.height*H;},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(!dragging)return;const r=canvas.getBoundingClientRect();const x=(e.touches[0].clientX-r.left)/r.width*W,y=(e.touches[0].clientY-r.top)/r.height*H;checkSlice(lastX,lastY,x,y);lastX=x;lastY=y;},{passive:false});
+canvas.addEventListener('touchend',e=>{e.preventDefault();dragging=false;},{passive:false});
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

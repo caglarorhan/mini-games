@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🛡️ Defender — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--blue);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--blue));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:500px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--green)}.hi-val{color:var(--yellow)}.l-val{color:var(--pink)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--blue));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.mobile-controls{display:none;margin-top:10px;gap:8px}
+.ctrl-row{display:flex;justify-content:center;gap:6px}
+.ctrl-btn{width:56px;height:46px;border-radius:12px;border:2px solid var(--border);background:var(--bg-card);color:var(--text-light);font-size:1.1rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+@media(max-width:768px){.mobile-controls{display:flex;flex-direction:column;align-items:center}}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🛡️ Defender</span></div>
+<header><h1>Defender</h1><p>Protect the humans from alien abduction!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+        <div class="hud-box"><div class="label">Lives</div><div class="value l-val" id="hLives">3</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="480" height="280"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>Defender</h2>
+            <div class="sub">Side-scrolling shooter!<br>Protect humans from alien landers.</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Defend!</button>
+        </div>
+    </div>
+    <div class="mobile-controls">
+        <div class="ctrl-row">
+            <button class="ctrl-btn" id="btnU">▲</button>
+        </div>
+        <div class="ctrl-row">
+            <button class="ctrl-btn" id="btnL">◄</button>
+            <button class="ctrl-btn" id="btnD">▼</button>
+            <button class="ctrl-btn" id="btnR">►</button>
+            <button class="ctrl-btn" id="btnF" style="background:var(--green);color:#fff;width:70px">FIRE</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Defender &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_defender',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=480,H=280;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest'),hLives=document.getElementById('hLives');
+const BEST_KEY='defender_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+let score,lives,player,bullets,enemies,humans,cam,state='idle',frame;
+const keys={up:false,down:false,left:false,right:false,fire:false};
+let lastFire=0;
+const WORLD_W=2400;
+const GROUND=H-30;
+
+// Terrain
+let terrain=[];
+function genTerrain(){terrain=[];for(let x=0;x<WORLD_W;x+=4){terrain.push(GROUND+Math.sin(x*0.01)*12+Math.sin(x*0.03)*6);}}
+
+function startGame(){
+    score=0;lives=3;frame=0;cam=0;
+    hScore.textContent=0;hLives.textContent=3;
+    player={x:200,y:H/2,dir:1,w:20,h:10};
+    bullets=[];enemies=[];
+    genTerrain();
+    humans=[];
+    for(let i=0;i<8;i++) humans.push({x:200+Math.random()*2000,y:GROUND-6,alive:true});
+    for(let i=0;i<6;i++) spawnEnemy();
+    state='running';overlay.classList.add('hidden');oScore.style.display='none';
+    requestAnimationFrame(loop);
+}
+
+function spawnEnemy(){
+    const x=(player.x+W+Math.random()*400)%WORLD_W;
+    enemies.push({x,y:40+Math.random()*100,vx:-0.5+Math.random(),vy:0.3+Math.random()*0.5,w:16,h:12,state:'hover'});
+}
+
+function update(){
+    if(state!=='running')return;
+    frame++;
+    // Player
+    const spd=3;
+    if(keys.up)player.y=Math.max(20,player.y-spd);
+    if(keys.down)player.y=Math.min(GROUND-14,player.y+spd);
+    if(keys.left){player.x-=spd*1.5;player.dir=-1;}
+    if(keys.right){player.x+=spd*1.5;player.dir=1;}
+    if(player.x<0)player.x+=WORLD_W;if(player.x>=WORLD_W)player.x-=WORLD_W;
+    cam=player.x-W*0.3;
+    
+    if(keys.fire&&frame-lastFire>8){
+        bullets.push({x:player.x+player.dir*14,y:player.y,vx:player.dir*8});lastFire=frame;
+    }
+    
+    // Bullets
+    bullets=bullets.filter(b=>{b.x+=b.vx;const dx=b.x-player.x;return Math.abs(dx)<W;});
+    
+    // Enemies
+    enemies.forEach(e=>{
+        e.x+=e.vx;e.y+=e.vy;
+        if(e.y>GROUND-16){e.vy=-Math.abs(e.vy)*0.8;e.y=GROUND-16;}
+        if(e.y<20){e.vy=Math.abs(e.vy);}
+        if(e.x<0)e.x+=WORLD_W;if(e.x>=WORLD_W)e.x-=WORLD_W;
+    });
+    
+    // Bullet-enemy
+    bullets.forEach(b=>{
+        enemies.forEach((e,i)=>{
+            const dx=Math.abs(b.x-e.x),dy=Math.abs(b.y-e.y);
+            if(dx<e.w&&dy<e.h){
+                enemies.splice(i,1);b.vx=0;b.x=-999;
+                score+=150;hScore.textContent=score;
+                spawnEnemy();
+            }
+        });
+    });
+    
+    // Enemy-player
+    enemies.forEach(e=>{
+        const dx=Math.abs(e.x-player.x),dy=Math.abs(e.y-player.y);
+        if(dx<18&&dy<14){
+            lives--;hLives.textContent=lives;
+            player.x=200;player.y=H/2;
+            if(lives<=0)endGame();
+        }
+    });
+    
+    if(frame%300===0&&enemies.length<12)spawnEnemy();
+}
+
+function endGame(){
+    state='over';
+    if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oScore.style.display='block';oScore.textContent='Score: '+score;
+    document.getElementById('startBtn').textContent='Play Again';
+    overlay.classList.remove('hidden');
+}
+
+function worldToScreen(wx){let sx=wx-cam;if(sx<-WORLD_W/2)sx+=WORLD_W;if(sx>WORLD_W/2)sx-=WORLD_W;return sx;}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Stars
+    ctx.fillStyle='#ffffff10';
+    for(let i=0;i<30;i++){const sx=((i*137+frame*0.1)%W),sy=(i*53)%H;ctx.fillRect(sx,sy,1,1);}
+    // Terrain
+    ctx.strokeStyle='#1a6b4a';ctx.lineWidth=1;ctx.beginPath();
+    for(let x=0;x<W;x+=4){
+        const wx=((cam+x)%WORLD_W+WORLD_W)%WORLD_W;
+        const ti=Math.floor(wx/4)%terrain.length;
+        const ty=terrain[ti];
+        x===0?ctx.moveTo(x,ty):ctx.lineTo(x,ty);
+    }
+    ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fillStyle='#0d2e1f';ctx.fill();ctx.stroke();
+    
+    // Humans
+    humans.forEach(h=>{
+        if(!h.alive)return;
+        const sx=worldToScreen(h.x);
+        if(sx<-20||sx>W+20)return;
+        ctx.fillStyle='#06d6a0';ctx.fillRect(sx-2,h.y-8,4,8);
+        ctx.fillRect(sx-4,h.y-4,8,2);
+    });
+    
+    // Enemies
+    enemies.forEach(e=>{
+        const sx=worldToScreen(e.x);
+        if(sx<-30||sx>W+30)return;
+        ctx.fillStyle='#ff6b9d';
+        ctx.beginPath();ctx.ellipse(sx,e.y,e.w/2,e.h/2,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(sx,e.y-2,3,0,Math.PI*2);ctx.fill();
+    });
+    
+    // Player
+    const px=worldToScreen(player.x);
+    ctx.fillStyle='#00e5ff';
+    ctx.beginPath();
+    if(player.dir>0){ctx.moveTo(px+14,player.y);ctx.lineTo(px-10,player.y-7);ctx.lineTo(px-10,player.y+7);}
+    else{ctx.moveTo(px-14,player.y);ctx.lineTo(px+10,player.y-7);ctx.lineTo(px+10,player.y+7);}
+    ctx.closePath();ctx.fill();
+    
+    // Bullets
+    ctx.fillStyle='#ffd166';
+    bullets.forEach(b=>{const sx=worldToScreen(b.x);if(sx>-10&&sx<W+10)ctx.fillRect(sx-4,b.y-1,8,2);});
+    
+    // Minimap
+    ctx.fillStyle='rgba(26,19,51,0.7)';ctx.fillRect(W/2-100,2,200,14);
+    ctx.fillStyle='#00e5ff';const mpx=W/2-100+(player.x/WORLD_W)*200;ctx.fillRect(mpx-2,3,4,12);
+    enemies.forEach(e=>{ctx.fillStyle='#ff6b9d';const ex=W/2-100+(e.x/WORLD_W)*200;ctx.fillRect(ex-1,5,2,8);});
+    humans.forEach(h=>{if(!h.alive)return;ctx.fillStyle='#06d6a0';const hx=W/2-100+(h.x/WORLD_W)*200;ctx.fillRect(hx,7,2,6);});
+}
+
+function loop(){update();draw();if(state==='running')requestAnimationFrame(loop);}
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowUp')keys.up=true;if(e.key==='ArrowDown')keys.down=true;
+    if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true;
+    if(e.key===' ')keys.fire=true;
+});
+document.addEventListener('keyup',e=>{
+    if(e.key==='ArrowUp')keys.up=false;if(e.key==='ArrowDown')keys.down=false;
+    if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false;
+    if(e.key===' ')keys.fire=false;
+});
+const btns={btnU:'up',btnD:'down',btnL:'left',btnR:'right',btnF:'fire'};
+Object.entries(btns).forEach(([id,k])=>{
+    const el=document.getElementById(id);
+    el.addEventListener('touchstart',e=>{e.preventDefault();keys[k]=true;},{passive:false});
+    el.addEventListener('touchend',()=>keys[k]=false);
+});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

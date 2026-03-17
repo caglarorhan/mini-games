@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🔧 Pipe Connect — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--blue);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--green);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--blue),var(--green));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--blue),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:400px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.l-val{color:var(--blue)}.hi-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:var(--bg-card)}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--blue),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--blue);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--blue),var(--green));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🔧 Pipe Connect</span></div>
+<header><h1>Pipe Connect</h1><p>Rotate pipes to connect the flow!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Level</div><div class="value l-val" id="hLevel">1</div></div>
+        <div class="hud-box"><div class="label">Completed</div><div class="value hi-val" id="hDone">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="360" height="360"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Pipe Connect</h2>
+            <div class="sub" id="oSub">Click/tap pipes to rotate them!<br>Connect all pipes from source to end!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Pipe Connect &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_pipe',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hLevel=document.getElementById('hLevel'),hDone=document.getElementById('hDone');
+const DONE_KEY='pipe_done';
+let totalDone=+localStorage.getItem(DONE_KEY)||0;hDone.textContent=totalDone;
+
+// Pipe types: connections as [top,right,bottom,left]
+// straight: [1,0,1,0], bend: [1,1,0,0], tee: [1,1,1,0], cross: [1,1,1,1]
+const PIPE_TYPES=[
+    [1,0,1,0], // straight vertical
+    [1,1,0,0], // bend
+    [1,1,1,0], // T
+    [1,1,1,1]  // cross
+];
+
+let SIZE=5,level=1,grid,cellSize,state='idle';
+
+function rotate(conns){return[conns[3],conns[0],conns[1],conns[2]];}
+
+function generate(){
+    SIZE=4+Math.min(Math.floor(level/3),3);
+    cellSize=Math.floor(W/SIZE);
+    grid=[];
+    // Generate a solvable puzzle by creating random path then scrambling
+    for(let r=0;r<SIZE;r++){
+        grid[r]=[];
+        for(let c=0;c<SIZE;c++){
+            // Determine needed connections
+            let conns=[0,0,0,0];
+            if(r>0)conns[0]=Math.random()>0.3?1:0; // top
+            if(c<SIZE-1)conns[1]=Math.random()>0.3?1:0; // right
+            if(r<SIZE-1)conns[2]=Math.random()>0.3?1:0; // bottom
+            if(c>0)conns[3]=Math.random()>0.3?1:0; // left
+            // Ensure at least 2 connections
+            if(conns.filter(Boolean).length<2){conns[2]=1;conns[1]=1;}
+            grid[r][c]={conns:[...conns],solution:[...conns]};
+        }
+    }
+    // Make connections symmetric
+    for(let r=0;r<SIZE;r++){
+        for(let c=0;c<SIZE;c++){
+            if(r>0){const match=grid[r-1][c].solution[2];grid[r][c].solution[0]=match;grid[r][c].conns[0]=match;}
+            if(c>0){const match=grid[r][c-1].solution[1];grid[r][c].solution[3]=match;grid[r][c].conns[3]=match;}
+        }
+    }
+    // Scramble rotations
+    for(let r=0;r<SIZE;r++){
+        for(let c=0;c<SIZE;c++){
+            const rots=Math.floor(Math.random()*4);
+            for(let i=0;i<rots;i++)grid[r][c].conns=rotate(grid[r][c].conns);
+        }
+    }
+}
+
+function draw(){
+    ctx.fillStyle='#1a1333';ctx.fillRect(0,0,W,H);
+    const connected=checkConnected();
+    for(let r=0;r<SIZE;r++){
+        for(let c=0;c<SIZE;c++){
+            const x=c*cellSize,y=r*cellSize;
+            const p=grid[r][c];
+            const isConn=connected[r][c];
+            ctx.fillStyle=isConn?'rgba(6,214,160,0.1)':'rgba(26,19,51,0.5)';
+            ctx.fillRect(x+1,y+1,cellSize-2,cellSize-2);
+            ctx.strokeStyle='#2a1f4e';ctx.lineWidth=1;ctx.strokeRect(x+1,y+1,cellSize-2,cellSize-2);
+            // Draw pipes
+            const cx=x+cellSize/2,cy=y+cellSize/2;
+            const pipeW=cellSize*0.2;
+            ctx.fillStyle=isConn?'#06d6a0':'#4a4a8a';
+            ctx.strokeStyle=isConn?'#06d6a0':'#6a6aaa';ctx.lineWidth=pipeW;ctx.lineCap='round';
+            // Center dot
+            ctx.beginPath();ctx.arc(cx,cy,pipeW/2,0,Math.PI*2);ctx.fill();
+            // Connections
+            if(p.conns[0]){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx,y+2);ctx.stroke();}
+            if(p.conns[1]){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(x+cellSize-2,cy);ctx.stroke();}
+            if(p.conns[2]){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx,y+cellSize-2);ctx.stroke();}
+            if(p.conns[3]){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(x+2,cy);ctx.stroke();}
+        }
+    }
+}
+
+function checkConnected(){
+    const vis=Array.from({length:SIZE},()=>Array(SIZE).fill(false));
+    const queue=[[0,0]];vis[0][0]=true;
+    while(queue.length){
+        const[r,c]=queue.shift();
+        const p=grid[r][c].conns;
+        // Top
+        if(p[0]&&r>0&&grid[r-1][c].conns[2]&&!vis[r-1][c]){vis[r-1][c]=true;queue.push([r-1,c]);}
+        // Right
+        if(p[1]&&c<SIZE-1&&grid[r][c+1].conns[3]&&!vis[r][c+1]){vis[r][c+1]=true;queue.push([r,c+1]);}
+        // Bottom
+        if(p[2]&&r<SIZE-1&&grid[r+1][c].conns[0]&&!vis[r+1][c]){vis[r+1][c]=true;queue.push([r+1,c]);}
+        // Left
+        if(p[3]&&c>0&&grid[r][c-1].conns[1]&&!vis[r][c-1]){vis[r][c-1]=true;queue.push([r,c-1]);}
+    }
+    return vis;
+}
+
+function isSolved(){
+    const vis=checkConnected();
+    return vis.flat().every(Boolean);
+}
+
+function startGame(){
+    level=1;generate();draw();state='playing';
+    hLevel.textContent=1;
+    overlay.classList.add('hidden');oScore.style.display='none';
+}
+
+canvas.addEventListener('click',e=>{
+    if(state!=='playing')return;
+    const rect=canvas.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)/rect.width*W;
+    const my=(e.clientY-rect.top)/rect.height*H;
+    const c=Math.floor(mx/cellSize),r=Math.floor(my/cellSize);
+    if(r>=0&&r<SIZE&&c>=0&&c<SIZE){
+        grid[r][c].conns=rotate(grid[r][c].conns);
+        draw();
+        if(isSolved()){
+            totalDone++;localStorage.setItem(DONE_KEY,totalDone);hDone.textContent=totalDone;
+            level++;hLevel.textContent=level;
+            setTimeout(()=>{generate();draw();},600);
+        }
+    }
+});
+
+canvas.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(state!=='playing'){startGame();return;}
+    const t=e.touches[0];
+    const rect=canvas.getBoundingClientRect();
+    const mx=(t.clientX-rect.left)/rect.width*W;
+    const my=(t.clientY-rect.top)/rect.height*H;
+    const c=Math.floor(mx/cellSize),r=Math.floor(my/cellSize);
+    if(r>=0&&r<SIZE&&c>=0&&c<SIZE){
+        grid[r][c].conns=rotate(grid[r][c].conns);
+        draw();
+        if(isSolved()){
+            totalDone++;localStorage.setItem(DONE_KEY,totalDone);hDone.textContent=totalDone;
+            level++;hLevel.textContent=level;
+            setTimeout(()=>{generate();draw();},600);
+        }
+    }
+},{passive:false});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>⛳ Mini Golf — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--yellow);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--yellow));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--green)}.hi-val{color:var(--yellow)}.h-val{color:var(--cyan)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--yellow));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">⛳ Mini Golf</span></div>
+<header><h1>Mini Golf</h1><p>Aim and putt into the hole!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Strokes</div><div class="value s-val" id="hStrokes">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">-</div></div>
+        <div class="hud-box"><div class="label">Hole</div><div class="value h-val" id="hHole">1/5</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="380" height="480"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>⛳ Mini Golf</h2>
+            <div class="sub">Drag from the ball to aim & set power.<br>Fewer strokes = better score!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Putt!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Mini Golf &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_minigolf',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=380,H=480;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hStrokes=document.getElementById('hStrokes'),hBest=document.getElementById('hBest'),hHole=document.getElementById('hHole');
+const BEST_KEY='minigolf_best';
+let best=localStorage.getItem(BEST_KEY);hBest.textContent=best||'-';
+
+const HOLES=[
+    {ball:{x:190,y:420},hole:{x:190,y:80},walls:[{x:60,y:200,w:120,h:20},{x:200,y:300,w:120,h:20}]},
+    {ball:{x:80,y:420},hole:{x:300,y:60},walls:[{x:150,y:150,w:20,h:200},{x:220,y:100,w:20,h:150}]},
+    {ball:{x:190,y:430},hole:{x:190,y:50},walls:[{x:100,y:130,w:180,h:16},{x:60,y:260,w:130,h:16},{x:190,y:340,w:130,h:16}]},
+    {ball:{x:60,y:420},hole:{x:320,y:80},walls:[{x:120,y:100,w:16,h:200},{x:240,y:200,w:16,h:200}]},
+    {ball:{x:190,y:440},hole:{x:190,y:40},walls:[{x:80,y:100,w:100,h:16},{x:200,y:200,w:100,h:16},{x:80,y:300,w:100,h:16},{x:200,y:380,w:100,h:16}]}
+];
+
+let ball,hole,walls,vx,vy,strokes,totalStrokes,curHole,dragging,dragX,dragY,state='idle';
+
+function loadHole(){
+    const h=HOLES[curHole];
+    ball={x:h.ball.x,y:h.ball.y,r:8};
+    hole={x:h.hole.x,y:h.hole.y,r:12};
+    walls=h.walls;vx=0;vy=0;
+    hHole.textContent=(curHole+1)+'/'+HOLES.length;
+    draw();
+}
+
+function startGame(){
+    strokes=0;totalStrokes=0;curHole=0;
+    hStrokes.textContent=0;
+    loadHole();state='ready';overlay.classList.add('hidden');oScore.style.display='none';
+    requestAnimationFrame(loop);
+}
+
+function update(){
+    if(state!=='moving')return;
+    vx*=0.985;vy*=0.985;
+    ball.x+=vx;ball.y+=vy;
+    // Walls (canvas border)
+    if(ball.x-ball.r<20){ball.x=20+ball.r;vx=-vx*0.7;}
+    if(ball.x+ball.r>W-20){ball.x=W-20-ball.r;vx=-vx*0.7;}
+    if(ball.y-ball.r<20){ball.y=20+ball.r;vy=-vy*0.7;}
+    if(ball.y+ball.r>H-20){ball.y=H-20-ball.r;vy=-vy*0.7;}
+    // Obstacle walls
+    walls.forEach(w=>{
+        const cx=Math.max(w.x,Math.min(ball.x,w.x+w.w));
+        const cy=Math.max(w.y,Math.min(ball.y,w.y+w.h));
+        const dx=ball.x-cx,dy=ball.y-cy;
+        if(dx*dx+dy*dy<ball.r*ball.r){
+            if(Math.abs(dx)>Math.abs(dy))vx=-vx*0.7;else vy=-vy*0.7;
+            ball.x+=dx*0.5;ball.y+=dy*0.5;
+        }
+    });
+    // Hole check
+    const dx=ball.x-hole.x,dy=ball.y-hole.y;
+    if(dx*dx+dy*dy<hole.r*hole.r&&Math.abs(vx)+Math.abs(vy)<6){
+        // Scored!
+        curHole++;
+        if(curHole>=HOLES.length){
+            if(!best||totalStrokes<+best){best=totalStrokes;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+            state='done';oScore.style.display='block';oScore.textContent='Total strokes: '+totalStrokes;
+            document.getElementById('startBtn').textContent='Play Again';
+            overlay.classList.remove('hidden');
+        }else{loadHole();state='ready';}
+        return;
+    }
+    if(Math.abs(vx)<0.1&&Math.abs(vy)<0.1){vx=0;vy=0;state='ready';}
+}
+
+function draw(){
+    // Green
+    ctx.fillStyle='#0d3320';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#1a5c3a';ctx.fillRect(20,20,W-40,H-40);
+    // Walls
+    walls.forEach(w=>{ctx.fillStyle='#5a3a20';ctx.fillRect(w.x,w.y,w.w,w.h);});
+    // Hole
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(hole.x,hole.y,hole.r,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#333';ctx.lineWidth=2;ctx.stroke();
+    // Flag
+    ctx.fillStyle='#ff6b9d';ctx.fillRect(hole.x,hole.y-30,16,12);
+    ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(hole.x,hole.y);ctx.lineTo(hole.x,hole.y-32);ctx.stroke();
+    // Ball
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#ccc';ctx.lineWidth=1;ctx.stroke();
+    // Drag line
+    if(dragging&&state==='ready'){
+        const dx=ball.x-dragX,dy=ball.y-dragY;
+        const power=Math.min(Math.sqrt(dx*dx+dy*dy),150);
+        ctx.strokeStyle='rgba(255,209,102,0.6)';ctx.lineWidth=3;
+        ctx.setLineDash([6,4]);
+        ctx.beginPath();ctx.moveTo(ball.x,ball.y);ctx.lineTo(ball.x+dx/Math.sqrt(dx*dx+dy*dy)*power,ball.y+dy/Math.sqrt(dx*dx+dy*dy)*power);ctx.stroke();
+        ctx.setLineDash([]);
+        // Power indicator
+        ctx.fillStyle='#ffd166';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+        ctx.fillText(Math.round(power/1.5)+'%',ball.x,ball.y+ball.r+16);
+    }
+}
+
+function loop(){update();draw();if(state!=='done')requestAnimationFrame(loop);}
+
+function getCanvasPos(e){
+    const rect=canvas.getBoundingClientRect();
+    const scaleX=W/rect.width,scaleY=H/rect.height;
+    const t=e.touches?e.touches[0]||e.changedTouches[0]:e;
+    return{x:(t.clientX-rect.left)*scaleX,y:(t.clientY-rect.top)*scaleY};
+}
+
+canvas.addEventListener('mousedown',e=>{if(state==='ready'){dragging=true;const p=getCanvasPos(e);dragX=p.x;dragY=p.y;}});
+canvas.addEventListener('mousemove',e=>{if(dragging){const p=getCanvasPos(e);dragX=p.x;dragY=p.y;}});
+canvas.addEventListener('mouseup',e=>{
+    if(!dragging)return;dragging=false;
+    const p=getCanvasPos(e);
+    const dx=ball.x-p.x,dy=ball.y-p.y;
+    const power=Math.min(Math.sqrt(dx*dx+dy*dy),150)/15;
+    if(power>0.3){vx=dx/Math.sqrt(dx*dx+dy*dy)*power;vy=dy/Math.sqrt(dx*dx+dy*dy)*power;strokes++;totalStrokes++;hStrokes.textContent=totalStrokes;state='moving';}
+});
+
+canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state==='ready'){dragging=true;const p=getCanvasPos(e);dragX=p.x;dragY=p.y;}},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(dragging){const p=getCanvasPos(e);dragX=p.x;dragY=p.y;}},{passive:false});
+canvas.addEventListener('touchend',e=>{
+    e.preventDefault();
+    if(!dragging)return;dragging=false;
+    const p=getCanvasPos(e);
+    const dx=ball.x-p.x,dy=ball.y-p.y;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const power=Math.min(dist,150)/15;
+    if(power>0.3&&dist>0){vx=dx/dist*power;vy=dy/dist*power;strokes++;totalStrokes++;hStrokes.textContent=totalStrokes;state='moving';}
+},{passive:false});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

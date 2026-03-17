@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🃏 Blackjack — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--yellow);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--yellow),var(--green));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--yellow),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:500px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.c-val{color:var(--yellow)}.w-val{color:var(--green)}.l-val{color:var(--pink)}
+.table{background:linear-gradient(135deg,#0a3018,#0a2818);border:2px solid var(--border);border-radius:16px;padding:20px;min-height:340px}
+.hand-area{margin-bottom:20px}
+.hand-label{font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;justify-content:space-between}
+.hand-label .total{color:var(--cyan);font-weight:800;font-size:1rem}
+.cards{display:flex;gap:8px;flex-wrap:wrap;min-height:90px}
+.playing-card{width:60px;height:84px;border-radius:8px;background:#1e1848;border:1px solid #3a2d6e;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;position:relative}
+.playing-card.red{color:var(--pink)}
+.playing-card.black{color:var(--text-light)}
+.playing-card.face-down{background:#2a1f4e;border:1px solid #3d2d6b}
+.playing-card .rank{position:absolute;top:4px;left:6px;font-size:.8rem}
+.playing-card .suit-big{font-size:1.6rem}
+.msg{text-align:center;font-size:1.2rem;font-weight:800;margin:12px 0;min-height:30px}
+.msg.win{color:var(--green)}.msg.lose{color:var(--pink)}.msg.push{color:var(--yellow)}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.act-btn{padding:12px 28px;border-radius:12px;border:none;font-size:1rem;font-weight:700;cursor:pointer;color:#fff;-webkit-tap-highlight-color:transparent}
+.act-btn.hit{background:linear-gradient(135deg,var(--cyan),var(--blue))}
+.act-btn.stand{background:linear-gradient(135deg,var(--orange),var(--pink))}
+.act-btn.deal{background:linear-gradient(135deg,var(--green),var(--cyan))}
+.act-btn:disabled{opacity:0.4;cursor:default}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🃏 Blackjack</span></div>
+<header><h1>Blackjack</h1><p>Get as close to 21 as you can!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Chips</div><div class="value c-val" id="hChips">100</div></div>
+        <div class="hud-box"><div class="label">Wins</div><div class="value w-val" id="hWins">0</div></div>
+        <div class="hud-box"><div class="label">Losses</div><div class="value l-val" id="hLosses">0</div></div>
+    </div>
+    <div class="table">
+        <div class="hand-area">
+            <div class="hand-label"><span>Dealer</span><span class="total" id="dealerTotal"></span></div>
+            <div class="cards" id="dealerCards"></div>
+        </div>
+        <div class="msg" id="msg">Press Deal to start!</div>
+        <div class="hand-area">
+            <div class="hand-label"><span>You</span><span class="total" id="playerTotal"></span></div>
+            <div class="cards" id="playerCards"></div>
+        </div>
+        <div class="actions">
+            <button class="act-btn deal" id="dealBtn">Deal (10 chips)</button>
+            <button class="act-btn hit" id="hitBtn" disabled>Hit</button>
+            <button class="act-btn stand" id="standBtn" disabled>Stand</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Blackjack &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_blackjack',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const dealerCardsEl=document.getElementById('dealerCards'),playerCardsEl=document.getElementById('playerCards');
+const dealerTotalEl=document.getElementById('dealerTotal'),playerTotalEl=document.getElementById('playerTotal');
+const msg=document.getElementById('msg'),dealBtn=document.getElementById('dealBtn');
+const hitBtn=document.getElementById('hitBtn'),standBtn=document.getElementById('standBtn');
+const hChips=document.getElementById('hChips'),hWins=document.getElementById('hWins'),hLosses=document.getElementById('hLosses');
+const CHIPS_KEY='blackjack_chips',WINS_KEY='blackjack_wins',LOSSES_KEY='blackjack_losses';
+let chips=+localStorage.getItem(CHIPS_KEY)||100;
+let totalWins=+localStorage.getItem(WINS_KEY)||0,totalLosses=+localStorage.getItem(LOSSES_KEY)||0;
+hChips.textContent=chips;hWins.textContent=totalWins;hLosses.textContent=totalLosses;
+
+const SUITS=['♠','♥','♦','♣'],RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+let deck,playerHand,dealerHand,gameActive,bet;
+
+function makeDeck(){
+    const d=[];SUITS.forEach(s=>RANKS.forEach(r=>d.push({suit:s,rank:r})));
+    for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+    return d;
+}
+
+function cardValue(hand){
+    let total=0,aces=0;
+    hand.forEach(c=>{
+        if(c.rank==='A'){aces++;total+=11;}
+        else if(['J','Q','K'].includes(c.rank))total+=10;
+        else total+=parseInt(c.rank);
+    });
+    while(total>21&&aces>0){total-=10;aces--;}
+    return total;
+}
+
+function renderCard(card,faceDown){
+    const div=document.createElement('div');
+    div.className='playing-card'+(faceDown?' face-down':'')+(card.suit==='♥'||card.suit==='♦'?' red':' black');
+    if(faceDown){div.innerHTML='<div style="font-size:1.5rem;color:#3d2d6b">🂠</div>';}
+    else{div.innerHTML=`<span class="rank">${card.rank}${card.suit}</span><span class="suit-big">${card.suit}</span>`;}
+    return div;
+}
+
+function renderHands(showDealer){
+    dealerCardsEl.innerHTML='';playerCardsEl.innerHTML='';
+    dealerHand.forEach((c,i)=>dealerCardsEl.appendChild(renderCard(c,!showDealer&&i===0)));
+    playerHand.forEach(c=>playerCardsEl.appendChild(renderCard(c)));
+    playerTotalEl.textContent=cardValue(playerHand);
+    dealerTotalEl.textContent=showDealer?cardValue(dealerHand):'?';
+}
+
+function saveStats(){
+    localStorage.setItem(CHIPS_KEY,chips);localStorage.setItem(WINS_KEY,totalWins);localStorage.setItem(LOSSES_KEY,totalLosses);
+    hChips.textContent=chips;hWins.textContent=totalWins;hLosses.textContent=totalLosses;
+}
+
+function endRound(result){
+    gameActive=false;hitBtn.disabled=true;standBtn.disabled=true;dealBtn.disabled=false;
+    renderHands(true);
+    if(result==='blackjack'){msg.textContent='Blackjack! +15 chips!';msg.className='msg win';chips+=15;totalWins++;}
+    else if(result==='win'){msg.textContent='You win! +10 chips!';msg.className='msg win';chips+=bet;totalWins++;}
+    else if(result==='lose'){msg.textContent='You lose! -10 chips.';msg.className='msg lose';totalLosses++;}
+    else if(result==='bust'){msg.textContent='Bust! Over 21!';msg.className='msg lose';totalLosses++;}
+    else{msg.textContent='Push! Chips returned.';msg.className='msg push';chips+=bet;}
+    if(chips<=0)chips=100; // Reset if broke
+    saveStats();
+}
+
+function deal(){
+    if(gameActive)return;
+    if(chips<10){chips=100;saveStats();}
+    bet=10;chips-=bet;saveStats();
+    deck=makeDeck();playerHand=[deck.pop(),deck.pop()];dealerHand=[deck.pop(),deck.pop()];
+    gameActive=true;hitBtn.disabled=false;standBtn.disabled=false;dealBtn.disabled=true;
+    msg.textContent='';msg.className='msg';
+    renderHands(false);
+    if(cardValue(playerHand)===21)endRound('blackjack');
+}
+
+function hit(){
+    if(!gameActive)return;
+    playerHand.push(deck.pop());renderHands(false);
+    if(cardValue(playerHand)>21)endRound('bust');
+}
+
+function stand(){
+    if(!gameActive)return;
+    while(cardValue(dealerHand)<17)dealerHand.push(deck.pop());
+    const pv=cardValue(playerHand),dv=cardValue(dealerHand);
+    if(dv>21||pv>dv)endRound('win');
+    else if(dv>pv)endRound('lose');
+    else endRound('push');
+}
+
+dealBtn.addEventListener('click',deal);
+hitBtn.addEventListener('click',hit);
+standBtn.addEventListener('click',stand);
+document.addEventListener('keydown',e=>{
+    if(e.key==='d'||e.key==='D')deal();
+    if(e.key==='h'||e.key==='H')hit();
+    if(e.key==='s'||e.key==='S')stand();
+});
+})();
+</script>
+</body>
+</html>

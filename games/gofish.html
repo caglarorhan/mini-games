@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🎣 Go Fish — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--blue);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--cyan);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.p-val{color:var(--cyan)}.c-val{color:var(--pink)}.d-val{color:var(--text-muted)}
+.game-area{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a;padding:16px;min-height:420px}
+.msg-area{text-align:center;font-size:.9rem;color:var(--text-muted);min-height:40px;margin-bottom:10px;line-height:1.4}
+.cpu-hand{text-align:center;margin-bottom:12px}
+.cpu-hand .label{font-size:.75rem;color:var(--pink);margin-bottom:4px}
+.cpu-cards{display:flex;gap:4px;justify-content:center;flex-wrap:wrap}
+.back-card{width:32px;height:44px;background:linear-gradient(135deg,#ff6b9d,#a855f7);border-radius:6px;border:1px solid #555}
+.your-hand{margin-top:12px}
+.your-hand .label{font-size:.75rem;color:var(--cyan);margin-bottom:4px;text-align:center}
+.your-cards{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.card{width:42px;height:58px;border-radius:8px;border:2px solid var(--border);background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:900;cursor:pointer;transition:all .2s}
+.card:hover{border-color:var(--cyan);transform:translateY(-4px)}
+.card.red{color:#ff6b6b}.card.black{color:#ddd}
+.pairs-area{text-align:center;margin-top:10px}
+.pairs-area .label{font-size:.7rem;color:var(--text-muted)}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--cyan);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🎣 Go Fish</span></div>
+<header><h1>Go Fish</h1><p>Collect pairs by asking for cards!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Your Pairs</div><div class="value p-val" id="hYou">0</div></div>
+        <div class="hud-box"><div class="label">CPU Pairs</div><div class="value c-val" id="hCPU">0</div></div>
+        <div class="hud-box"><div class="label">Deck</div><div class="value d-val" id="hDeck">0</div></div>
+    </div>
+    <div class="game-area" id="gameArea">
+        <div class="msg-area" id="msg">Tap one of your cards to ask CPU for that rank!</div>
+        <div class="cpu-hand"><div class="label">CPU Hand</div><div class="cpu-cards" id="cpuCards"></div></div>
+        <div class="your-hand"><div class="label">Your Hand</div><div class="your-cards" id="yourCards"></div></div>
+        <div class="pairs-area"><div class="label" id="pairsInfo"></div></div>
+        <div class="overlay" id="overlay">
+            <h2>🎣 Go Fish</h2>
+            <div class="sub">Ask for a card rank you hold. If opponent has it, they give it. Otherwise, Go Fish!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Go Fish &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_gofish',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hYou=document.getElementById('hYou'),hCPU=document.getElementById('hCPU'),hDeck=document.getElementById('hDeck');
+const msg=document.getElementById('msg'),cpuCardsEl=document.getElementById('cpuCards'),yourCardsEl=document.getElementById('yourCards'),pairsInfo=document.getElementById('pairsInfo');
+const WINS_KEY='gofish_wins';
+const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const SUITS=['♠','♥','♦','♣'];
+
+let deck,playerHand,cpuHand,playerPairs,cpuPairs,turn,state,waiting;
+
+function makeDeck(){
+    const d=[];
+    RANKS.forEach(r=>SUITS.forEach(s=>d.push({rank:r,suit:s})));
+    for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+    return d;
+}
+
+function startGame(){
+    deck=makeDeck();
+    playerHand=deck.splice(0,7);cpuHand=deck.splice(0,7);
+    playerPairs=0;cpuPairs=0;turn='player';state='playing';waiting=false;
+    checkPairs('player');checkPairs('cpu');
+    hYou.textContent=playerPairs;hCPU.textContent=cpuPairs;hDeck.textContent=deck.length;
+    msg.textContent='Tap one of your cards to ask CPU for that rank!';
+    overlay.classList.add('hidden');oScore.style.display='none';
+    render();
+}
+
+function checkPairs(who){
+    const hand=who==='player'?playerHand:cpuHand;
+    const counts={};
+    hand.forEach(c=>{counts[c.rank]=(counts[c.rank]||0)+1;});
+    for(const[rank,count] of Object.entries(counts)){
+        if(count>=2){
+            // Remove pair
+            let removed=0;
+            for(let i=hand.length-1;i>=0&&removed<2;i--){
+                if(hand[i].rank===rank){hand.splice(i,1);removed++;}
+            }
+            if(who==='player')playerPairs++;else cpuPairs++;
+        }
+    }
+    hYou.textContent=playerPairs;hCPU.textContent=cpuPairs;
+}
+
+function render(){
+    cpuCardsEl.innerHTML='';
+    cpuHand.forEach(()=>{const d=document.createElement('div');d.className='back-card';cpuCardsEl.appendChild(d);});
+    yourCardsEl.innerHTML='';
+    playerHand.sort((a,b)=>RANKS.indexOf(a.rank)-RANKS.indexOf(b.rank));
+    playerHand.forEach(c=>{
+        const d=document.createElement('div');d.className='card '+(c.suit==='♥'||c.suit==='♦'?'red':'black');
+        d.textContent=c.rank+c.suit;
+        d.addEventListener('click',()=>askFor(c.rank));
+        yourCardsEl.appendChild(d);
+    });
+    hDeck.textContent=deck.length;
+    pairsInfo.textContent='Your pairs: '+playerPairs+' | CPU pairs: '+cpuPairs;
+    checkGameOver();
+}
+
+function askFor(rank){
+    if(state!=='playing'||turn!=='player'||waiting)return;
+    waiting=true;
+    const found=cpuHand.filter(c=>c.rank===rank);
+    if(found.length>0){
+        msg.textContent='CPU has a '+rank+'! You got it!';
+        found.forEach(f=>{
+            playerHand.push(f);
+            cpuHand.splice(cpuHand.indexOf(f),1);
+        });
+        checkPairs('player');
+        setTimeout(()=>{render();waiting=false;msg.textContent='You got a match! Go again!';},800);
+    }else{
+        msg.textContent='Go Fish!';
+        if(deck.length>0){
+            const drawn=deck.pop();
+            playerHand.push(drawn);
+            setTimeout(()=>{msg.textContent='You drew '+drawn.rank+drawn.suit;checkPairs('player');render();},500);
+        }
+        turn='cpu';
+        setTimeout(()=>{waiting=false;cpuTurn();},1200);
+    }
+}
+
+function cpuTurn(){
+    if(state!=='playing')return;
+    if(cpuHand.length===0){
+        if(deck.length>0)cpuHand.push(deck.pop());
+        else{checkGameOver();return;}
+    }
+    const rank=cpuHand[Math.floor(Math.random()*cpuHand.length)].rank;
+    msg.textContent='CPU asks: Do you have a '+rank+'?';
+    setTimeout(()=>{
+        const found=playerHand.filter(c=>c.rank===rank);
+        if(found.length>0){
+            msg.textContent='You give CPU your '+rank+'!';
+            found.forEach(f=>{
+                cpuHand.push(f);
+                playerHand.splice(playerHand.indexOf(f),1);
+            });
+            checkPairs('cpu');
+            setTimeout(()=>{render();cpuTurn();},1000);
+        }else{
+            msg.textContent='You say: Go Fish!';
+            if(deck.length>0)cpuHand.push(deck.pop());
+            checkPairs('cpu');
+            turn='player';
+            setTimeout(()=>{
+                msg.textContent='Your turn! Tap a card to ask.';
+                if(playerHand.length===0&&deck.length>0){playerHand.push(deck.pop());checkPairs('player');}
+                render();
+            },1000);
+        }
+    },800);
+}
+
+function checkGameOver(){
+    if(playerHand.length===0&&cpuHand.length===0&&deck.length===0){
+        endGame();return true;
+    }
+    const totalPairs=playerPairs+cpuPairs;
+    if(totalPairs>=26){endGame();return true;}
+    return false;
+}
+
+function endGame(){
+    state='over';
+    const winner=playerPairs>cpuPairs?'You Win!':playerPairs<cpuPairs?'CPU Wins!':'Draw!';
+    oScore.style.display='block';
+    oScore.textContent=winner+' ('+playerPairs+' vs '+cpuPairs+')';
+    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');
+}
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

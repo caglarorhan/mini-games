@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>👆 Tap Tap — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--cyan);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--cyan));color:#000;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:380px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--green)}.t-val{color:var(--orange)}.h-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--cyan));color:#000;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">👆 Tap Tap</span></div>
+<header><h1>Tap Tap</h1><p>Tap targets as fast as you can!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Time</div><div class="value t-val" id="hTime">30</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value h-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="340" height="440"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>👆 Tap Tap</h2>
+            <div class="sub">Tap the colored circles before they shrink!<br>30 seconds — how many can you tap?</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Tap Tap &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_taptap',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=340,H=440;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hTime=document.getElementById('hTime'),hBest=document.getElementById('hBest');
+const BEST_KEY='taptap_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+const COLORS=['#ff6b9d','#00e5ff','#06d6a0','#ffd166','#a855f7','#ff8a47','#118ab2'];
+let targets,score,timeLeft,combo,state,raf,lastTime,spawnTimer;
+
+function startGame(){
+    targets=[];score=0;timeLeft=30;combo=0;spawnTimer=0;
+    state='playing';lastTime=Date.now();
+    hScore.textContent=0;hTime.textContent=30;
+    overlay.classList.add('hidden');oScore.style.display='none';
+    spawnTarget();spawnTarget();spawnTarget();
+    if(raf)cancelAnimationFrame(raf);
+    loop();
+}
+
+function spawnTarget(){
+    const r=15+Math.random()*25;
+    const x=r+Math.random()*(W-r*2);
+    const y=r+Math.random()*(H-r*2);
+    const color=COLORS[Math.floor(Math.random()*COLORS.length)];
+    const life=1.5+Math.random()*1.5;// seconds
+    targets.push({x,y,r,maxR:r,color,life,maxLife:life,hit:false,hitAnim:0});
+}
+
+function tapAt(mx,my){
+    if(state!=='playing')return;
+    let hitAny=false;
+    for(let i=targets.length-1;i>=0;i--){
+        const t=targets[i];
+        if(t.hit)continue;
+        const d=Math.sqrt((mx-t.x)**2+(my-t.y)**2);
+        if(d<=t.r){
+            t.hit=true;t.hitAnim=1;
+            combo++;
+            const pts=10*Math.min(combo,5);
+            score+=pts;hScore.textContent=score;
+            hitAny=true;
+            spawnTarget();
+            break;
+        }
+    }
+    if(!hitAny)combo=0;
+}
+
+function update(){
+    const now=Date.now(),dt=(now-lastTime)/1000;lastTime=now;
+    timeLeft-=dt;hTime.textContent=Math.ceil(Math.max(0,timeLeft));
+    if(timeLeft<=0){endGame();return;}
+
+    // Update targets
+    for(let i=targets.length-1;i>=0;i--){
+        const t=targets[i];
+        if(t.hit){
+            t.hitAnim-=dt*3;
+            if(t.hitAnim<=0){targets.splice(i,1);}
+        }else{
+            t.life-=dt;
+            t.r=t.maxR*(t.life/t.maxLife);
+            if(t.life<=0){targets.splice(i,1);combo=0;spawnTarget();}
+        }
+    }
+    // Auto-spawn
+    spawnTimer+=dt;
+    if(spawnTimer>0.8&&targets.filter(t=>!t.hit).length<4){spawnTimer=0;spawnTarget();}
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Grid lines
+    ctx.strokeStyle='rgba(42,31,78,0.3)';ctx.lineWidth=1;
+    for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+    for(const t of targets){
+        if(t.hit){
+            ctx.globalAlpha=t.hitAnim;
+            ctx.fillStyle='#fff';
+            ctx.beginPath();ctx.arc(t.x,t.y,t.maxR*(2-t.hitAnim),0,Math.PI*2);ctx.fill();
+            ctx.globalAlpha=1;
+        }else{
+            // Shadow
+            ctx.fillStyle='rgba(0,0,0,0.3)';
+            ctx.beginPath();ctx.arc(t.x+2,t.y+2,t.r,0,Math.PI*2);ctx.fill();
+            // Circle
+            ctx.fillStyle=t.color;
+            ctx.beginPath();ctx.arc(t.x,t.y,t.r,0,Math.PI*2);ctx.fill();
+            // Highlight
+            ctx.fillStyle='rgba(255,255,255,0.3)';
+            ctx.beginPath();ctx.arc(t.x-t.r*0.2,t.y-t.r*0.2,t.r*0.4,0,Math.PI*2);ctx.fill();
+            // Life ring
+            ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=2;
+            ctx.beginPath();ctx.arc(t.x,t.y,t.maxR+3,0,Math.PI*2*(t.life/t.maxLife));ctx.stroke();
+        }
+    }
+    // Combo
+    if(combo>1){
+        ctx.fillStyle='#ffd166';ctx.font='bold 16px sans-serif';ctx.textAlign='center';
+        ctx.fillText('x'+combo+' COMBO',W/2,H-15);
+    }
+}
+
+function loop(){
+    if(state!=='playing')return;
+    update();draw();raf=requestAnimationFrame(loop);
+}
+
+function endGame(){
+    state='over';if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oScore.style.display='block';oScore.textContent='Score: '+score;
+    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');
+}
+
+function getCanvasPos(e){
+    const rect=canvas.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    return{x:(t.clientX-rect.left)*(W/rect.width),y:(t.clientY-rect.top)*(H/rect.height)};
+}
+canvas.addEventListener('click',e=>{const p=getCanvasPos(e);tapAt(p.x,p.y);});
+canvas.addEventListener('touchstart',e=>{e.preventDefault();const p=getCanvasPos(e);tapAt(p.x,p.y);},{passive:false});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🪙 Coin Dash — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--yellow);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--orange);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--yellow),var(--orange));color:#000;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--yellow),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:400px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--yellow)}.t-val{color:var(--orange)}.h-val{color:var(--green)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--yellow);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--yellow),var(--orange));color:#000;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.d-pad{display:grid;grid-template-columns:56px 56px 56px;grid-template-rows:56px 56px;gap:4px;justify-content:center;margin-top:12px}
+.ctrl-btn{width:56px;height:56px;border:none;border-radius:14px;font-size:1.3rem;font-weight:700;cursor:pointer;background:var(--bg-card);color:var(--text-light);border:1px solid var(--border)}
+.d-pad .ctrl-btn:nth-child(1){grid-column:2}
+.d-pad .ctrl-btn:nth-child(2){grid-column:1;grid-row:2}
+.d-pad .ctrl-btn:nth-child(3){grid-column:3;grid-row:2}
+.d-pad .ctrl-btn:nth-child(4){grid-column:2;grid-row:2}
+@media(max-width:768px){.d-pad{display:grid}}
+@media(min-width:769px){.d-pad{display:none}}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🪙 Coin Dash</span></div>
+<header><h1>Coin Dash</h1><p>Collect coins, avoid skulls!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Coins</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Time</div><div class="value t-val" id="hTime">30</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value h-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="360" height="400"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🪙 Coin Dash</h2>
+            <div class="sub">Move to collect gold coins.<br>Avoid the red skulls! 30 second dash!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+    <div class="d-pad">
+        <button class="ctrl-btn" data-dir="up">▲</button>
+        <button class="ctrl-btn" data-dir="left">◄</button>
+        <button class="ctrl-btn" data-dir="right">►</button>
+        <button class="ctrl-btn" data-dir="down">▼</button>
+    </div>
+</div>
+<div class="game-footer">Coin Dash &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_coindash',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=360,H=400;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hTime=document.getElementById('hTime'),hBest=document.getElementById('hBest');
+const BEST_KEY='coindash_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+let px,py,coins,skulls,score,timeLeft,state,raf,lastTime;
+let keys={};
+
+function spawnCoin(){
+    coins.push({x:20+Math.random()*(W-40),y:20+Math.random()*(H-40),r:10,sparkle:Math.random()*Math.PI*2});
+}
+function spawnSkull(){
+    skulls.push({x:20+Math.random()*(W-40),y:20+Math.random()*(H-40),vx:(Math.random()-0.5)*3,vy:(Math.random()-0.5)*3});
+}
+
+function startGame(){
+    px=W/2;py=H/2;score=0;timeLeft=30;
+    coins=[];skulls=[];
+    for(let i=0;i<8;i++)spawnCoin();
+    for(let i=0;i<3;i++)spawnSkull();
+    state='playing';lastTime=Date.now();
+    hScore.textContent=0;hTime.textContent=30;
+    overlay.classList.add('hidden');oScore.style.display='none';
+    if(raf)cancelAnimationFrame(raf);
+    loop();
+}
+
+function update(){
+    const now=Date.now(),dt=(now-lastTime)/1000;lastTime=now;
+    timeLeft-=dt;hTime.textContent=Math.ceil(Math.max(0,timeLeft));
+    if(timeLeft<=0){endGame(false);return;}
+
+    const spd=3;
+    if(keys.up)py-=spd;
+    if(keys.down)py+=spd;
+    if(keys.left)px-=spd;
+    if(keys.right)px+=spd;
+    px=Math.max(10,Math.min(W-10,px));
+    py=Math.max(10,Math.min(H-10,py));
+
+    // Collect coins
+    for(let i=coins.length-1;i>=0;i--){
+        const c=coins[i];c.sparkle+=0.1;
+        if(Math.sqrt((px-c.x)**2+(py-c.y)**2)<18){
+            coins.splice(i,1);score++;hScore.textContent=score;
+            spawnCoin();
+            if(score%5===0)spawnSkull();
+        }
+    }
+    // Move skulls
+    for(const s of skulls){
+        s.x+=s.vx;s.y+=s.vy;
+        if(s.x<10||s.x>W-10)s.vx*=-1;
+        if(s.y<10||s.y>H-10)s.vy*=-1;
+        if(Math.sqrt((px-s.x)**2+(py-s.y)**2)<16){endGame(true);return;}
+    }
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Coins
+    for(const c of coins){
+        ctx.fillStyle='#ffd166';
+        ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#d4a017';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+        ctx.fillText('$',c.x,c.y+4);
+        // sparkle
+        ctx.fillStyle='rgba(255,255,255,0.5)';
+        ctx.beginPath();ctx.arc(c.x+Math.cos(c.sparkle)*6,c.y+Math.sin(c.sparkle)*6,2,0,Math.PI*2);ctx.fill();
+    }
+    // Skulls
+    for(const s of skulls){
+        ctx.fillStyle='#ff6b9d';
+        ctx.beginPath();ctx.arc(s.x,s.y,10,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#fff';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('☠',s.x,s.y+4);
+    }
+    // Player
+    ctx.fillStyle='#00e5ff';
+    ctx.beginPath();ctx.arc(px,py,10,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(px,py,6,0,Math.PI*2);ctx.fill();
+}
+
+function loop(){
+    if(state!=='playing')return;
+    update();draw();raf=requestAnimationFrame(loop);
+}
+
+function endGame(hitSkull){
+    state='over';if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oScore.style.display='block';
+    oScore.textContent=(hitSkull?'💀 Hit skull! ':'⏰ Time up! ')+'Coins: '+score;
+    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');
+}
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowUp'||e.key==='w')keys.up=true;
+    if(e.key==='ArrowDown'||e.key==='s')keys.down=true;
+    if(e.key==='ArrowLeft'||e.key==='a')keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d')keys.right=true;
+});
+document.addEventListener('keyup',e=>{
+    if(e.key==='ArrowUp'||e.key==='w')keys.up=false;
+    if(e.key==='ArrowDown'||e.key==='s')keys.down=false;
+    if(e.key==='ArrowLeft'||e.key==='a')keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d')keys.right=false;
+});
+document.querySelectorAll('[data-dir]').forEach(btn=>{
+    const d=btn.dataset.dir;
+    const on=()=>keys[d]=true,off=()=>keys[d]=false;
+    btn.addEventListener('touchstart',e=>{e.preventDefault();on();},{passive:false});
+    btn.addEventListener('touchend',off);btn.addEventListener('touchcancel',off);
+    btn.addEventListener('mousedown',on);btn.addEventListener('mouseup',off);btn.addEventListener('mouseleave',off);
+});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

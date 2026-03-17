@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>⌨️ Typing Speed — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--cyan);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--purple);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:480px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.w-val{color:var(--cyan)}.t-val{color:var(--pink)}.hi-val{color:var(--yellow)}
+.text-area{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px;font-size:1.1rem;line-height:1.8;margin-bottom:12px;min-height:120px;user-select:none;-webkit-user-select:none}
+.text-area .done{color:var(--green)}
+.text-area .current{background:rgba(0,229,255,.2);border-bottom:2px solid var(--cyan)}
+.text-area .wrong{color:var(--pink);background:rgba(255,107,157,.15)}
+.text-area .pending{color:var(--text-muted)}
+.input-wrap{position:relative}
+.input-wrap input{width:100%;padding:14px 18px;border-radius:12px;border:2px solid var(--border);background:var(--bg-card);color:var(--text-light);font-size:1rem;font-family:inherit;outline:none}
+.input-wrap input:focus{border-color:var(--cyan)}
+.timer-bar{height:6px;border-radius:3px;background:var(--border);margin-top:12px;overflow:hidden}
+.timer-fill{height:100%;background:var(--cyan);transition:width .1s linear;border-radius:3px}
+.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:50}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--cyan);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">⌨️ Typing Speed</span></div>
+<header><h1>Typing Speed</h1><p>Type as fast as you can!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">WPM</div><div class="value w-val" id="hWPM">0</div></div>
+        <div class="hud-box"><div class="label">Time</div><div class="value t-val" id="hTime">30</div></div>
+        <div class="hud-box"><div class="label">Best WPM</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="text-area" id="textArea"></div>
+    <div class="input-wrap"><input type="text" id="typeInput" placeholder="Start typing here..." autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+    <div class="timer-bar"><div class="timer-fill" id="timerFill" style="width:100%"></div></div>
+</div>
+<div class="overlay" id="overlay">
+    <h2 id="oTitle">Typing Speed</h2>
+    <div class="sub" id="oSub">Type the displayed text as fast as you can!<br>30 seconds on the clock!</div>
+    <div class="final-score" id="oScore" style="display:none"></div>
+    <button class="start-btn" id="startBtn">Type!</button>
+</div>
+<div class="game-footer">Typing Speed &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_typing',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const WORDS='the quick brown fox jumps over a lazy dog she sells sea shells by the shore pack my box with five dozen liquor jugs how vexingly fast do walruses jog bright sunny days make everyone happy the arcade game was really fun playing mini games is awesome every pixel counts in retro style neon lights flash across the dark screen high scores are meant to be broken'.split(' ');
+const GAME_TIME=30;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hWPM=document.getElementById('hWPM'),hTime=document.getElementById('hTime'),hBest=document.getElementById('hBest');
+const textArea=document.getElementById('textArea'),typeInput=document.getElementById('typeInput'),timerFill=document.getElementById('timerFill');
+const BEST_KEY='typing_best';
+let bestWPM=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=bestWPM;
+let state='idle',text,charIdx,correctChars,totalTyped,timeLeft,timer,started;
+
+function genText(){
+    const arr=[];for(let i=0;i<60;i++)arr.push(WORDS[Math.floor(Math.random()*WORDS.length)]);
+    return arr.join(' ');
+}
+
+function renderText(){
+    let html='';
+    for(let i=0;i<text.length;i++){
+        const ch=text[i]===' '?'&nbsp;':text[i];
+        if(i<charIdx){
+            html+='<span class="done">'+ch+'</span>';
+        } else if(i===charIdx){
+            html+='<span class="current">'+ch+'</span>';
+        } else {
+            html+='<span class="pending">'+ch+'</span>';
+        }
+    }
+    textArea.innerHTML=html;
+}
+
+function startGame(){
+    text=genText();charIdx=0;correctChars=0;totalTyped=0;timeLeft=GAME_TIME;started=false;
+    typeInput.value='';typeInput.disabled=false;typeInput.focus();
+    hWPM.textContent=0;hTime.textContent=GAME_TIME;
+    renderText();state='running';overlay.classList.add('hidden');oScore.style.display='none';
+}
+
+typeInput.addEventListener('input',()=>{
+    if(state!=='running')return;
+    if(!started){
+        started=true;
+        timer=setInterval(()=>{
+            timeLeft-=0.1;
+            hTime.textContent=Math.ceil(timeLeft);
+            timerFill.style.width=(timeLeft/GAME_TIME*100)+'%';
+            if(timeLeft<=5)timerFill.style.background='var(--pink)';else timerFill.style.background='var(--cyan)';
+            // Update WPM
+            const elapsed=GAME_TIME-timeLeft;
+            if(elapsed>0){const wpm=Math.round((correctChars/5)/(elapsed/60));hWPM.textContent=wpm;}
+            if(timeLeft<=0){clearInterval(timer);endGame();}
+        },100);
+    }
+    const val=typeInput.value;
+    // Process each new character
+    const lastChar=val[val.length-1];
+    if(lastChar===text[charIdx]){
+        correctChars++;charIdx++;
+    } else {
+        charIdx++;
+    }
+    totalTyped++;
+    typeInput.value='';
+    renderText();
+    if(charIdx>=text.length){text+=(' '+genText());renderText();}
+});
+
+function endGame(){
+    state='done';typeInput.disabled=true;
+    const elapsed=GAME_TIME;
+    const wpm=Math.round((correctChars/5)/(elapsed/60));
+    hWPM.textContent=wpm;
+    if(wpm>bestWPM){bestWPM=wpm;localStorage.setItem(BEST_KEY,bestWPM);hBest.textContent=bestWPM;}
+    oTitle.textContent='Time Up!';oSub.textContent='';oScore.textContent=wpm+' WPM';oScore.style.display='block';
+    overlay.classList.remove('hidden');document.getElementById('startBtn').textContent='Again';
+}
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

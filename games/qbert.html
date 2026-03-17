@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🎮 Q*bert — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--orange);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--purple);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--orange),var(--purple));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--orange),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:400px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--orange)}.hi-val{color:var(--yellow)}.l-val{color:var(--pink)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--orange),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--orange);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--orange),var(--purple));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.mobile-controls{display:none;justify-content:center;gap:6px;margin-top:10px}
+.ctrl-pad{display:flex;flex-direction:column;gap:4px;align-items:center}
+.ctrl-row{display:flex;gap:6px}
+.ctrl-btn{width:58px;height:48px;border-radius:12px;border:2px solid var(--border);background:var(--bg-card);color:var(--text-light);font-size:.75rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+@media(max-width:768px){.mobile-controls{display:flex}}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🎮 Q*bert</span></div>
+<header><h1>Q*bert</h1><p>Jump on all cubes to change colors!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+        <div class="hud-box"><div class="label">Lives</div><div class="value l-val" id="hLives">3</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="380" height="420"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>Q*bert</h2>
+            <div class="sub">Jump diagonally on all cubes!<br>Change every cube's color to win.</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+    <div class="mobile-controls">
+        <div class="ctrl-pad">
+            <div class="ctrl-row"><button class="ctrl-btn" id="btnUL">↖ Up-L</button><button class="ctrl-btn" id="btnUR">↗ Up-R</button></div>
+            <div class="ctrl-row"><button class="ctrl-btn" id="btnDL">↙ Dn-L</button><button class="ctrl-btn" id="btnDR">↘ Dn-R</button></div>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Q*bert &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_qbert',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=380,H=420;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest'),hLives=document.getElementById('hLives');
+const BEST_KEY='qbert_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+let score,lives,level,cubes,player,enemies,state='idle',anim,animTimer;
+const ROWS=7;
+const CUBE_W=42,CUBE_H=24;
+const OFF_X=W/2,OFF_Y=50;
+const TARGET_COLOR='#ff8a47';const START_COLOR='#118ab2';const DONE_COLOR='#ff8a47';
+
+function cubePos(row,col){
+    return{
+        x:OFF_X+(col-row/2)*CUBE_W,
+        y:OFF_Y+row*CUBE_H*1.5
+    };
+}
+
+function initCubes(){
+    cubes=[];
+    for(let r=0;r<ROWS;r++){
+        cubes[r]=[];
+        for(let c=0;c<=r;c++){
+            cubes[r][c]={colored:false};
+        }
+    }
+}
+
+function startGame(){
+    score=0;lives=3;level=1;
+    hScore.textContent=0;hLives.textContent=3;
+    initCubes();player={row:0,col:0};enemies=[];
+    state='running';overlay.classList.add('hidden');oScore.style.display='none';anim=null;
+    draw();
+}
+
+function jump(dr,dc){
+    if(state!=='running'||anim)return;
+    const nr=player.row+dr,nc=player.col+dc;
+    if(nr<0||nr>=ROWS||nc<0||nc>nr){
+        // Fall off
+        lives--;hLives.textContent=lives;
+        if(lives<=0)endGame();
+        else{player={row:0,col:0};draw();}
+        return;
+    }
+    player.row=nr;player.col=nc;
+    if(!cubes[nr][nc].colored){
+        cubes[nr][nc].colored=true;score+=25;hScore.textContent=score;
+    }
+    draw();checkWin();
+}
+
+function checkWin(){
+    for(let r=0;r<ROWS;r++)for(let c=0;c<=r;c++)
+        if(!cubes[r][c].colored)return;
+    score+=1000;hScore.textContent=score;level++;
+    initCubes();player={row:0,col:0};draw();
+}
+
+function endGame(){
+    state='over';
+    if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oScore.style.display='block';oScore.textContent='Score: '+score;
+    document.getElementById('startBtn').textContent='Play Again';
+    overlay.classList.remove('hidden');
+}
+
+function drawCube(x,y,colored){
+    const w=CUBE_W*0.9,h=CUBE_H;
+    // Top face
+    ctx.fillStyle=colored?'#ff8a47':'#118ab2';
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w/2,y-h/2);ctx.lineTo(x+w,y);ctx.lineTo(x+w/2,y+h/2);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#0a0a1a';ctx.lineWidth=1;ctx.stroke();
+    // Left face
+    ctx.fillStyle=colored?'#cc6e3a':'#0d6e8a';
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w/2,y+h/2);ctx.lineTo(x+w/2,y+h*1.5);ctx.lineTo(x,y+h);ctx.closePath();ctx.fill();ctx.stroke();
+    // Right face
+    ctx.fillStyle=colored?'#e07a42':'#0f7e9e';
+    ctx.beginPath();ctx.moveTo(x+w,y);ctx.lineTo(x+w/2,y+h/2);ctx.lineTo(x+w/2,y+h*1.5);ctx.lineTo(x+w,y+h);ctx.closePath();ctx.fill();ctx.stroke();
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Cubes
+    for(let r=ROWS-1;r>=0;r--){
+        for(let c=r;c>=0;c--){
+            const p=cubePos(r,c);
+            drawCube(p.x-CUBE_W*0.45,p.y,cubes[r][c].colored);
+        }
+    }
+    // Player
+    const pp=cubePos(player.row,player.col);
+    ctx.fillStyle='#ffd166';
+    ctx.beginPath();ctx.arc(pp.x,pp.y-8,12,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#0a0a1a';
+    ctx.beginPath();ctx.arc(pp.x-3,pp.y-11,2.5,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(pp.x+3,pp.y-11,2.5,0,Math.PI*2);ctx.fill();
+    // Nose
+    ctx.fillStyle='#ff6b9d';
+    ctx.beginPath();ctx.arc(pp.x,pp.y-6,3,0,Math.PI*2);ctx.fill();
+    // Level
+    ctx.fillStyle='var(--text-muted)';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+    ctx.fillStyle='#a99ec4';ctx.fillText('Level '+level,W/2,H-10);
+}
+
+// Swipe
+let tx,ty;
+canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state!=='running'){startGame();return;}tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:false});
+canvas.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+    if(Math.abs(dx)<15&&Math.abs(dy)<15)return;
+    if(dy<0){dx<0?jump(-1,0):jump(-1,0);}// up-left : up-right??
+    // Diagonal: up-left(-1,0), up-right(-1,+0→from perspective)
+    // Q*bert diagonal movement: row-1 col same = up-right, row-1 col-1 = up-left
+    if(dy<-10&&dx<-10)jump(-1,-1); // up-left
+    else if(dy<-10&&dx>10)jump(-1,0); // up-right
+    else if(dy>10&&dx<-10)jump(1,0); // down-left
+    else if(dy>10&&dx>10)jump(1,1); // down-right
+});
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='q'||e.key==='7')jump(-1,-1);// up-left
+    if(e.key==='e'||e.key==='9')jump(-1,0);//up-right
+    if(e.key==='a'||e.key==='1')jump(1,0);//down-left
+    if(e.key==='d'||e.key==='3')jump(1,1);//down-right
+    if(e.key==='ArrowUp')jump(-1,0);
+    if(e.key==='ArrowDown')jump(1,1);
+    if(e.key==='ArrowLeft')jump(1,0);//down-left (or up-left??)
+    if(e.key==='ArrowRight')jump(-1,0);
+});
+
+// Mobile buttons
+document.getElementById('btnUL').addEventListener('touchstart',e=>{e.preventDefault();jump(-1,-1);},{passive:false});
+document.getElementById('btnUR').addEventListener('touchstart',e=>{e.preventDefault();jump(-1,0);},{passive:false});
+document.getElementById('btnDL').addEventListener('touchstart',e=>{e.preventDefault();jump(1,0);},{passive:false});
+document.getElementById('btnDR').addEventListener('touchstart',e=>{e.preventDefault();jump(1,1);},{passive:false});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+draw();
+})();
+</script>
+</body>
+</html>

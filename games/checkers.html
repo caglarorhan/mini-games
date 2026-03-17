@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>⚫ Checkers — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--deep-purple:#7c3aed;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--pink);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--orange);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--pink),var(--orange));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--cyan)}.w-val{color:var(--green)}.l-val{color:var(--pink)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0618}
+canvas{display:block;width:100%;height:auto;cursor:pointer}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--pink),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--pink);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--pink),var(--orange));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">⚫ Checkers</span></div>
+<header><h1>Checkers</h1><p>Jump and capture all opponent pieces!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Your Pieces</div><div class="value s-val" id="hYou">12</div></div>
+        <div class="hud-box"><div class="label">Wins</div><div class="value w-val" id="hWins">0</div></div>
+        <div class="hud-box"><div class="label">AI Pieces</div><div class="value l-val" id="hAi">12</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Checkers</h2>
+            <div class="sub" id="oSub">You are blue. Click a piece, then click where to move.<br>Jump over AI pieces to capture them!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Checkers &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_checkers',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,SZ=W/8;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hYou=document.getElementById('hYou'),hWins=document.getElementById('hWins'),hAi=document.getElementById('hAi');
+const WINS_KEY='checkers_wins';
+let wins=+localStorage.getItem(WINS_KEY)||0;hWins.textContent=wins;
+// Board: 0=empty, 1=player, 2=AI, 3=player king, 4=AI king
+let board,selected,validMoves,state='idle',turn;
+
+function startGame(){
+    board=Array.from({length:8},()=>Array(8).fill(0));
+    for(let r=0;r<3;r++)for(let c=0;c<8;c++)if((r+c)%2===1)board[r][c]=2;
+    for(let r=5;r<8;r++)for(let c=0;c<8;c++)if((r+c)%2===1)board[r][c]=1;
+    selected=null;validMoves=[];turn='player';state='running';
+    overlay.classList.add('hidden');updateHUD();draw();
+}
+
+function updateHUD(){
+    let p=0,a=0;
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){if(board[r][c]===1||board[r][c]===3)p++;if(board[r][c]===2||board[r][c]===4)a++;}
+    hYou.textContent=p;hAi.textContent=a;
+}
+
+function isPlayer(v){return v===1||v===3;}
+function isAI(v){return v===2||v===4;}
+function isKing(v){return v===3||v===4;}
+
+function getMoves(r,c){
+    const v=board[r][c],moves=[],jumps=[];
+    const dirs=isKing(v)?[[-1,-1],[-1,1],[1,-1],[1,1]]:isPlayer(v)?[[-1,-1],[-1,1]]:[[1,-1],[1,1]];
+    dirs.forEach(([dr,dc])=>{
+        const nr=r+dr,nc=c+dc;
+        if(nr>=0&&nr<8&&nc>=0&&nc<8){
+            if(board[nr][nc]===0)moves.push({r:nr,c:nc,jump:false});
+            else if((isPlayer(v)&&isAI(board[nr][nc]))||(isAI(v)&&isPlayer(board[nr][nc]))){
+                const jr=nr+dr,jc=nc+dc;
+                if(jr>=0&&jr<8&&jc>=0&&jc<8&&board[jr][jc]===0)jumps.push({r:jr,c:jc,jump:true,cap:{r:nr,c:nc}});
+            }
+        }
+    });
+    return jumps.length>0?jumps:moves; // Must jump if possible
+}
+
+function getMultiJumps(r,c){
+    const v=board[r][c];
+    const dirs=isKing(v)?[[-1,-1],[-1,1],[1,-1],[1,1]]:isPlayer(v)?[[-1,-1],[-1,1]]:[[1,-1],[1,1]];
+    const jumps=[];
+    dirs.forEach(([dr,dc])=>{
+        const nr=r+dr,nc=c+dc,jr=nr+dr,jc=nc+dc;
+        if(nr>=0&&nr<8&&nc>=0&&nc<8&&jr>=0&&jr<8&&jc>=0&&jc<8){
+            if(((isPlayer(v)&&isAI(board[nr][nc]))||(isAI(v)&&isPlayer(board[nr][nc])))&&board[jr][jc]===0)
+                jumps.push({r:jr,c:jc,jump:true,cap:{r:nr,c:nc}});
+        }
+    });
+    return jumps;
+}
+
+function allMoves(isPlayerTurn){
+    const pieces=[];
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+        const v=board[r][c];
+        if((isPlayerTurn&&isPlayer(v))||(!isPlayerTurn&&isAI(v))){
+            const moves=getMoves(r,c);
+            if(moves.length)pieces.push({r,c,moves});
+        }
+    }
+    const hasJump=pieces.some(p=>p.moves.some(m=>m.jump));
+    if(hasJump)return pieces.filter(p=>p.moves.some(m=>m.jump)).map(p=>({...p,moves:p.moves.filter(m=>m.jump)}));
+    return pieces;
+}
+
+function doMove(fr,fc,mv){
+    board[mv.r][mv.c]=board[fr][fc];board[fr][fc]=0;
+    if(mv.jump)board[mv.cap.r][mv.cap.c]=0;
+    // King promotion
+    if(board[mv.r][mv.c]===1&&mv.r===0)board[mv.r][mv.c]=3;
+    if(board[mv.r][mv.c]===2&&mv.r===7)board[mv.r][mv.c]=4;
+    updateHUD();
+    // Multi-jump
+    if(mv.jump){
+        const more=getMultiJumps(mv.r,mv.c);
+        if(more.length){return{multi:true,r:mv.r,c:mv.c,moves:more};}
+    }
+    return{multi:false};
+}
+
+function checkEnd(){
+    const pMoves=allMoves(true),aMoves=allMoves(false);
+    let p=0,a=0;
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){if(isPlayer(board[r][c]))p++;if(isAI(board[r][c]))a++;}
+    if(a===0||aMoves.length===0){
+        state='done';wins++;localStorage.setItem(WINS_KEY,wins);hWins.textContent=wins;
+        oTitle.textContent='You Win!';oSub.textContent='All opponent pieces captured!';oScore.style.display='none';overlay.classList.remove('hidden');return true;
+    }
+    if(p===0||pMoves.length===0){
+        state='done';oTitle.textContent='You Lose';oSub.textContent='Better luck next time!';oScore.style.display='none';overlay.classList.remove('hidden');return true;
+    }
+    return false;
+}
+
+function aiTurn(){
+    if(state!=='running')return;
+    turn='ai';
+    setTimeout(()=>{
+        function doAiMove(){
+            const pieces=allMoves(false);
+            if(!pieces.length){checkEnd();return;}
+            // Prefer jumps, then random
+            const p=pieces[Math.floor(Math.random()*pieces.length)];
+            const m=p.moves[Math.floor(Math.random()*p.moves.length)];
+            const result=doMove(p.r,p.c,m);draw();
+            if(result.multi){
+                // Continue jumping
+                setTimeout(()=>{
+                    const nm=result.moves[Math.floor(Math.random()*result.moves.length)];
+                    const r2=doMove(result.r,result.c,nm);draw();
+                    if(r2.multi){setTimeout(()=>{doAiMove();},300);} else {if(!checkEnd()){turn='player';}}
+                },300);
+            } else {if(!checkEnd()){turn='player';}}
+        }
+        doAiMove();
+    },400);
+}
+
+function draw(){
+    ctx.clearRect(0,0,W,W);
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+            ctx.fillStyle=(r+c)%2===0?'#1a1333':'#2a1f4e';
+            ctx.fillRect(c*SZ,r*SZ,SZ,SZ);
+            // Highlight valid moves
+            if(validMoves.some(m=>m.r===r&&m.c===c)){
+                ctx.fillStyle='rgba(6,214,160,0.3)';ctx.fillRect(c*SZ,r*SZ,SZ,SZ);
+            }
+        }
+    }
+    // Selected highlight
+    if(selected){
+        ctx.strokeStyle='#00e5ff';ctx.lineWidth=3;ctx.strokeRect(selected.c*SZ+2,selected.r*SZ+2,SZ-4,SZ-4);
+    }
+    // Pieces
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+            const v=board[r][c];if(!v)continue;
+            const cx=c*SZ+SZ/2,cy=r*SZ+SZ/2,pr=SZ*0.38;
+            ctx.beginPath();ctx.arc(cx,cy,pr,0,Math.PI*2);
+            ctx.fillStyle=isPlayer(v)?'#00e5ff':'#ff6b9d';ctx.fill();
+            ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=2;ctx.stroke();
+            if(isKing(v)){
+                ctx.fillStyle='rgba(255,255,255,0.8)';ctx.font='bold '+SZ*0.35+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♔',cx,cy);
+            }
+            // Shine
+            ctx.fillStyle='rgba(255,255,255,0.2)';ctx.beginPath();ctx.arc(cx-pr*0.3,cy-pr*0.3,pr*0.25,0,Math.PI*2);ctx.fill();
+        }
+    }
+}
+
+function handleClick(clientX,clientY){
+    if(state!=='running'||turn!=='player')return;
+    const rect=canvas.getBoundingClientRect();
+    const c=Math.floor((clientX-rect.left)/rect.width*8);
+    const r=Math.floor((clientY-rect.top)/rect.height*8);
+    if(c<0||c>7||r<0||r>7)return;
+
+    // If clicking on a valid move destination
+    const mv=validMoves.find(m=>m.r===r&&m.c===c);
+    if(mv&&selected){
+        const result=doMove(selected.r,selected.c,mv);
+        if(result.multi){
+            selected={r:result.r,c:result.c};validMoves=result.moves;draw();return;
+        }
+        selected=null;validMoves=[];draw();
+        if(!checkEnd())aiTurn();
+        return;
+    }
+
+    // Select piece
+    if(isPlayer(board[r][c])){
+        const pieces=allMoves(true);
+        const p=pieces.find(p=>p.r===r&&p.c===c);
+        if(p){selected={r,c};validMoves=p.moves;draw();}
+    }
+}
+
+canvas.addEventListener('click',e=>handleClick(e.clientX,e.clientY));
+canvas.addEventListener('touchstart',e=>{e.preventDefault();handleClick(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+document.getElementById('startBtn').addEventListener('click',startGame);
+draw();
+})();
+</script>
+</body>
+</html>

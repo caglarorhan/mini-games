@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🔢 Number Drop — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--blue);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--cyan);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:380px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--cyan)}.l-val{color:var(--green)}.h-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--cyan);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.controls{display:none;gap:8px;margin-top:12px;justify-content:center}
+@media(max-width:768px){.controls{display:flex}}
+.ctrl-btn{width:56px;height:56px;border:none;border-radius:14px;font-size:1.3rem;font-weight:700;cursor:pointer;background:var(--bg-card);color:var(--text-light);border:1px solid var(--border)}
+.ctrl-btn.drop{background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;width:70px;font-size:.85rem}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🔢 Number Drop</span></div>
+<header><h1>Number Drop</h1><p>Merge matching numbers as they fall!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Level</div><div class="value l-val" id="hLevel">1</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value h-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="350" height="450"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🔢 Number Drop</h2>
+            <div class="sub">Move and drop number blocks.<br>Matching numbers merge and double!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+    <div class="controls">
+        <button class="ctrl-btn" data-act="left">◄</button>
+        <button class="ctrl-btn drop" data-act="drop">DROP</button>
+        <button class="ctrl-btn" data-act="right">►</button>
+    </div>
+</div>
+<div class="game-footer">Number Drop &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_numberdrop',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=350,H=450;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hLevel=document.getElementById('hLevel'),hBest=document.getElementById('hBest');
+const BEST_KEY='numberdrop_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+const COLS=7,ROWS=9,CELL=W/COLS;
+const COLORS={2:'#00e5ff',4:'#06d6a0',8:'#ffd166',16:'#ff8a47',32:'#ff6b9d',64:'#a855f7',128:'#118ab2',256:'#ff6b9d'};
+let grid,current,score,level,dropTimer,dropSpeed,state,raf;
+
+function newPiece(){
+    const maxVal=Math.min(8,2**(Math.floor(level/3)+1));
+    const vals=[2,2,2,4,4,8];
+    const v=vals.filter(x=>x<=maxVal);
+    const val=v[Math.floor(Math.random()*v.length)];
+    current={col:Math.floor(COLS/2),row:0,val};
+    if(grid[0][current.col]){endGame();return;}
+}
+
+function startGame(){
+    grid=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+    score=0;level=1;dropTimer=0;dropSpeed=30;
+    state='playing';
+    hScore.textContent=0;hLevel.textContent=1;
+    newPiece();
+    overlay.classList.add('hidden');oScore.style.display='none';
+    if(raf)cancelAnimationFrame(raf);
+    loop();
+}
+
+function moveLeft(){if(current&&current.col>0&&!grid[current.row][current.col-1])current.col--;}
+function moveRight(){if(current&&current.col<COLS-1&&!grid[current.row][current.col+1])current.col++;}
+function hardDrop(){
+    if(!current||state!=='playing')return;
+    while(current.row<ROWS-1&&!grid[current.row+1][current.col])current.row++;
+    placePiece();
+}
+
+function placePiece(){
+    grid[current.row][current.col]=current.val;
+    // Merge
+    let merged=true;
+    while(merged){
+        merged=false;
+        for(let r=ROWS-1;r>=0;r--){
+            for(let c=0;c<COLS;c++){
+                if(!grid[r][c])continue;
+                // Check below
+                if(r<ROWS-1&&grid[r+1][c]===grid[r][c]){
+                    grid[r+1][c]*=2;grid[r][c]=0;
+                    score+=grid[r+1][c];merged=true;
+                }
+                // Check left
+                if(c>0&&grid[r][c-1]===grid[r][c]){
+                    grid[r][c-1]*=2;grid[r][c]=0;
+                    score+=grid[r][c-1];merged=true;
+                }
+            }
+        }
+        // Gravity
+        for(let c=0;c<COLS;c++){
+            let empty=-1;
+            for(let r=ROWS-1;r>=0;r--){
+                if(!grid[r][c]&&empty<0)empty=r;
+                else if(grid[r][c]&&empty>=0){
+                    grid[empty][c]=grid[r][c];grid[r][c]=0;empty--;
+                }
+            }
+        }
+    }
+    hScore.textContent=score;
+    level=Math.floor(score/200)+1;hLevel.textContent=level;
+    dropSpeed=Math.max(10,30-level*2);
+    newPiece();
+}
+
+function update(){
+    if(!current)return;
+    dropTimer++;
+    if(dropTimer>=dropSpeed){
+        dropTimer=0;
+        if(current.row<ROWS-1&&!grid[current.row+1][current.col]){
+            current.row++;
+        }else{
+            placePiece();
+        }
+    }
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Grid lines
+    ctx.strokeStyle='rgba(42,31,78,0.3)';ctx.lineWidth=1;
+    for(let c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(c*CELL,0);ctx.lineTo(c*CELL,ROWS*CELL);ctx.stroke();}
+    for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*CELL);ctx.lineTo(COLS*CELL,r*CELL);ctx.stroke();}
+    // Placed blocks
+    for(let r=0;r<ROWS;r++){
+        for(let c=0;c<COLS;c++){
+            if(grid[r][c]){
+                const v=grid[r][c];
+                ctx.fillStyle=COLORS[v]||'#fff';
+                ctx.fillRect(c*CELL+2,r*CELL+2,CELL-4,CELL-4);
+                ctx.fillStyle='#000';ctx.font='bold '+(v>99?'14':'18')+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+                ctx.fillText(v,c*CELL+CELL/2,r*CELL+CELL/2);
+            }
+        }
+    }
+    // Current piece
+    if(current){
+        const v=current.val;
+        ctx.fillStyle=COLORS[v]||'#fff';ctx.globalAlpha=0.9;
+        ctx.fillRect(current.col*CELL+2,current.row*CELL+2,CELL-4,CELL-4);
+        ctx.globalAlpha=1;
+        ctx.fillStyle='#000';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(v,current.col*CELL+CELL/2,current.row*CELL+CELL/2);
+    }
+}
+
+function loop(){
+    if(state!=='playing')return;
+    update();draw();raf=requestAnimationFrame(loop);
+}
+
+function endGame(){
+    state='over';if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oScore.style.display='block';oScore.textContent='Score: '+score;
+    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');
+}
+
+document.addEventListener('keydown',e=>{
+    if(state!=='playing')return;
+    if(e.key==='ArrowLeft'||e.key==='a')moveLeft();
+    if(e.key==='ArrowRight'||e.key==='d')moveRight();
+    if(e.key==='ArrowDown'||e.key==='s'||e.key===' '){e.preventDefault();hardDrop();}
+});
+document.querySelectorAll('[data-act]').forEach(btn=>{
+    const act=btn.dataset.act;
+    btn.addEventListener('click',()=>{if(act==='left')moveLeft();else if(act==='right')moveRight();else hardDrop();});
+    btn.addEventListener('touchstart',e=>{e.preventDefault();if(act==='left')moveLeft();else if(act==='right')moveRight();else hardDrop();},{passive:false});
+});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

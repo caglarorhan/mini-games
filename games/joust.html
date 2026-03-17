@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🏇 Joust — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--cyan);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--cyan));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:440px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--green)}.hi-val{color:var(--yellow)}.l-val{color:var(--pink)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--cyan));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.mobile-controls{display:none;justify-content:center;gap:12px;margin-top:10px}
+.ctrl-btn{width:80px;height:50px;border-radius:14px;border:2px solid var(--border);background:var(--bg-card);color:var(--text-light);font-size:1rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+@media(max-width:768px){.mobile-controls{display:flex}}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🏇 Joust</span></div>
+<header><h1>Joust</h1><p>Flap to fly and defeat enemies from above!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+        <div class="hud-box"><div class="label">Lives</div><div class="value l-val" id="hLives">3</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="420" height="340"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🏇 Joust</h2>
+            <div class="sub">Flap to fly! Land on enemies from above.<br>Left/Right + Flap controls.</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Joust!</button>
+        </div>
+    </div>
+    <div class="mobile-controls">
+        <button class="ctrl-btn" id="btnL">◄</button>
+        <button class="ctrl-btn" id="btnFlap" style="background:var(--green);color:#fff;width:90px">FLAP</button>
+        <button class="ctrl-btn" id="btnR">►</button>
+    </div>
+</div>
+<div class="game-footer">Joust &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_joust',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=420,H=340;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest'),hLives=document.getElementById('hLives');
+const BEST_KEY='joust_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+const keys={left:false,right:false,flap:false};
+let score,lives,player,enemies,platforms,eggs,wave,state='idle',frame,gravity=0.25;
+
+const PLATS=[
+    {x:0,y:H-15,w:W,h:15},
+    {x:60,y:230,w:120,h:10},
+    {x:250,y:190,w:110,h:10},
+    {x:140,y:130,w:140,h:10},
+    {x:0,y:280,w:80,h:10},
+    {x:340,y:280,w:80,h:10}
+];
+
+function spawnWave(){
+    wave++;
+    const num=2+wave;
+    for(let i=0;i<num;i++){
+        enemies.push({
+            x:Math.random()*W,y:40+Math.random()*100,
+            vx:(Math.random()-0.5)*2,vy:0,
+            w:16,h:16,flapCD:0,alive:true
+        });
+    }
+}
+
+function startGame(){
+    score=0;lives=3;wave=0;frame=0;
+    hScore.textContent=0;hLives.textContent=3;
+    player={x:W/2,y:H-40,vx:0,vy:0,w:16,h:16,dir:1};
+    enemies=[];eggs=[];platforms=PLATS;
+    spawnWave();state='running';overlay.classList.add('hidden');oScore.style.display='none';
+    requestAnimationFrame(loop);
+}
+
+function platformCollide(ent){
+    platforms.forEach(p=>{
+        if(ent.vy>=0&&ent.y+ent.h>p.y&&ent.y+ent.h<p.y+p.h+ent.vy+2&&
+            ent.x+ent.w>p.x&&ent.x<p.x+p.w){
+            ent.y=p.y-ent.h;ent.vy=0;
+        }
+    });
+}
+
+function update(){
+    if(state!=='running')return;
+    frame++;
+    // Player physics
+    if(keys.left){player.vx-=0.4;player.dir=-1;}
+    if(keys.right){player.vx+=0.4;player.dir=1;}
+    if(keys.flap){player.vy=-3.5;keys.flap=false;}
+    player.vy+=gravity;player.vx*=0.97;
+    player.x+=player.vx;player.y+=player.vy;
+    // Wrap
+    if(player.x<-player.w)player.x=W;if(player.x>W)player.x=-player.w;
+    if(player.y<0){player.y=0;player.vy=0;}
+    platformCollide(player);
+    
+    // Enemies
+    enemies.forEach(e=>{
+        if(!e.alive)return;
+        e.flapCD--;
+        if(e.flapCD<=0){e.vy=-2.5;e.flapCD=20+Math.floor(Math.random()*30);}
+        // Chase player horizontally
+        if(player.x>e.x)e.vx+=0.1;else e.vx-=0.1;
+        e.vy+=gravity;e.vx*=0.98;
+        e.x+=e.vx;e.y+=e.vy;
+        if(e.x<-e.w)e.x=W;if(e.x>W)e.x=-e.w;
+        if(e.y<0){e.y=0;e.vy=0;}
+        platformCollide(e);
+    });
+    
+    // Collision: player vs enemies
+    enemies.forEach(e=>{
+        if(!e.alive)return;
+        const dx=Math.abs((player.x+player.w/2)-(e.x+e.w/2));
+        const dy=Math.abs((player.y+player.h/2)-(e.y+e.h/2));
+        if(dx<18&&dy<18){
+            if(player.y+player.h/2<e.y+e.h/2){
+                // Player above = kill enemy
+                e.alive=false;score+=500;hScore.textContent=score;
+                eggs.push({x:e.x,y:e.y,vy:0,timer:200});
+                player.vy=-3;
+            } else {
+                // Enemy above = player dies
+                lives--;hLives.textContent=lives;
+                if(lives<=0)endGame();
+                else{player.x=W/2;player.y=H-40;player.vx=0;player.vy=0;}
+            }
+        }
+    });
+    
+    // Eggs
+    eggs.forEach(eg=>{eg.vy+=gravity;eg.y+=eg.vy;eg.timer--;platformCollide(eg);});
+    eggs=eggs.filter(eg=>eg.timer>0&&eg.y<H);
+    // Collect eggs
+    eggs=eggs.filter(eg=>{
+        if(Math.abs(player.x-eg.x)<16&&Math.abs(player.y-eg.y)<16){
+            score+=250;hScore.textContent=score;return false;
+        }
+        return true;
+    });
+    
+    // Next wave
+    if(enemies.every(e=>!e.alive)&&eggs.length===0)spawnWave();
+}
+
+function endGame(){
+    state='over';
+    if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oScore.style.display='block';oScore.textContent='Score: '+score;
+    document.getElementById('startBtn').textContent='Play Again';
+    overlay.classList.remove('hidden');
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Platforms
+    platforms.forEach(p=>{
+        ctx.fillStyle='#2a1f4e';ctx.fillRect(p.x,p.y,p.w,p.h);
+        ctx.fillStyle='#3a2f6e';ctx.fillRect(p.x,p.y,p.w,3);
+    });
+    // Eggs
+    eggs.forEach(eg=>{
+        ctx.fillStyle='#ffd166';ctx.beginPath();ctx.ellipse(eg.x+8,eg.y+8,6,8,0,0,Math.PI*2);ctx.fill();
+    });
+    // Enemies
+    enemies.forEach(e=>{
+        if(!e.alive)return;
+        ctx.fillStyle='#ff6b9d';
+        ctx.beginPath();ctx.ellipse(e.x+e.w/2,e.y+e.h/2,e.w/2,e.h/2,0,0,Math.PI*2);ctx.fill();
+        // Wings
+        const wing=Math.sin(frame*0.3)*4;
+        ctx.fillStyle='#a855f7';
+        ctx.beginPath();ctx.ellipse(e.x+e.w/2-10,e.y+e.h/2-wing,6,3,0,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(e.x+e.w/2+10,e.y+e.h/2-wing,6,3,0,0,Math.PI*2);ctx.fill();
+        // Lance
+        ctx.strokeStyle='#fff';ctx.lineWidth=2;
+        const ldir=e.vx>0?1:-1;
+        ctx.beginPath();ctx.moveTo(e.x+e.w/2,e.y+e.h/2);ctx.lineTo(e.x+e.w/2+ldir*14,e.y+e.h/2);ctx.stroke();
+    });
+    // Player
+    const px=player.x+player.w/2,py=player.y+player.h/2;
+    ctx.fillStyle='#00e5ff';
+    ctx.beginPath();ctx.ellipse(px,py,player.w/2,player.h/2,0,0,Math.PI*2);ctx.fill();
+    const wingP=Math.sin(frame*0.3)*5;
+    ctx.fillStyle='#06d6a0';
+    ctx.beginPath();ctx.ellipse(px-10,py-wingP,7,3,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(px+10,py-wingP,7,3,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#ffd166';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+player.dir*14,py);ctx.stroke();
+    // Wave
+    ctx.fillStyle='#a99ec4';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Wave '+wave,W/2,16);
+}
+
+function loop(){update();draw();if(state==='running')requestAnimationFrame(loop);}
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true;
+    if(e.key===' '||e.key==='ArrowUp')keys.flap=true;
+});
+document.addEventListener('keyup',e=>{
+    if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false;
+});
+document.getElementById('btnL').addEventListener('touchstart',e=>{e.preventDefault();keys.left=true;},{passive:false});
+document.getElementById('btnL').addEventListener('touchend',()=>keys.left=false);
+document.getElementById('btnR').addEventListener('touchstart',e=>{e.preventDefault();keys.right=true;},{passive:false});
+document.getElementById('btnR').addEventListener('touchend',()=>keys.right=false);
+document.getElementById('btnFlap').addEventListener('touchstart',e=>{e.preventDefault();keys.flap=true;},{passive:false});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

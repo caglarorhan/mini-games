@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🎳 Bowling — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--blue);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--purple);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:400px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--blue)}.hi-val{color:var(--yellow)}.f-val{color:var(--cyan)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--blue);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🎳 Bowling</span></div>
+<header><h1>Bowling</h1><p>Knock down all the pins!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+        <div class="hud-box"><div class="label">Frame</div><div class="value f-val" id="hFrame">1/10</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="340" height="500"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🎳 Bowling</h2>
+            <div class="sub">Swipe up to bowl!<br>Aim for all 10 pins.</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Bowl!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Bowling &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_bowling',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=340,H=500;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest'),hFrame=document.getElementById('hFrame');
+const BEST_KEY='bowling_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+let ball,pins,score,frameNum,rollNum,state='idle',aiming;
+const PIN_ROWS=4;
+const PIN_R=8;const BALL_R=12;
+const LANE_L=70,LANE_R=270;
+
+function initPins(){
+    pins=[];
+    const startY=80;const spacing=22;
+    for(let row=0;row<PIN_ROWS;row++){
+        for(let col=0;col<=row;col++){
+            pins.push({
+                x:W/2-(row*spacing/2)+col*spacing,
+                y:startY+row*spacing,
+                r:PIN_R,vx:0,vy:0,alive:true
+            });
+        }
+    }
+}
+
+function startGame(){
+    score=0;frameNum=1;rollNum=1;
+    hScore.textContent=0;hFrame.textContent='1/10';
+    initPins();ball={x:W/2,y:H-50,vx:0,vy:0};aiming=true;
+    state='aiming';overlay.classList.add('hidden');oScore.style.display='none';
+    requestAnimationFrame(loop);
+}
+
+function update(){
+    if(state==='rolling'){
+        ball.x+=ball.vx;ball.y+=ball.vy;
+        ball.vx*=0.99;ball.vy*=0.99;
+        // Lane walls
+        if(ball.x-BALL_R<LANE_L){ball.x=LANE_L+BALL_R;ball.vx=Math.abs(ball.vx)*0.3;}
+        if(ball.x+BALL_R>LANE_R){ball.x=LANE_R-BALL_R;ball.vx=-Math.abs(ball.vx)*0.3;}
+        // Pin collision
+        pins.forEach(p=>{
+            if(!p.alive)return;
+            const dx=ball.x-p.x,dy=ball.y-p.y,dist=Math.sqrt(dx*dx+dy*dy);
+            if(dist<BALL_R+p.r){
+                p.alive=false;
+                p.vx=dx/dist*3;p.vy=dy/dist*3;
+            }
+        });
+        // Pin-pin collision
+        for(let i=0;i<pins.length;i++){
+            const a=pins[i];if(a.alive&&(Math.abs(a.vx)>0.1||Math.abs(a.vy)>0.1)){
+                for(let j=i+1;j<pins.length;j++){
+                    const b=pins[j];if(!b.alive)continue;
+                    const dx=b.x-a.x,dy=b.y-a.y,dist=Math.sqrt(dx*dx+dy*dy);
+                    if(dist<PIN_R*2){b.alive=false;b.vx=dx/dist*2;b.vy=dy/dist*2;}
+                }
+            }
+        }
+        // Dead pins animate
+        pins.forEach(p=>{if(!p.alive){p.x+=p.vx;p.y+=p.vy;p.vx*=0.95;p.vy*=0.95;}});
+        
+        if(ball.y<-20||Math.abs(ball.vy)<0.1){
+            const knocked=pins.filter(p=>!p.alive).length;
+            score+=knocked;hScore.textContent=score;
+            rollNum++;
+            if(knocked===10||rollNum>2){
+                frameNum++;
+                if(frameNum>10){
+                    if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+                    state='done';oScore.style.display='block';oScore.textContent='Score: '+score;
+                    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');return;
+                }
+                rollNum=1;initPins();
+            }
+            hFrame.textContent=Math.min(frameNum,10)+'/10';
+            ball={x:W/2,y:H-50,vx:0,vy:0};state='aiming';
+        }
+    }
+    if(state==='aiming'){
+        // Ball sways
+        ball.x=W/2+Math.sin(Date.now()*0.003)*60;
+    }
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Lane
+    ctx.fillStyle='#4a3520';ctx.fillRect(LANE_L,0,LANE_R-LANE_L,H);
+    // Lane lines
+    ctx.strokeStyle='#5a4530';ctx.lineWidth=1;
+    for(let i=0;i<4;i++){const x=LANE_L+20+i*40;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    // Gutters
+    ctx.fillStyle='#1a1a1a';ctx.fillRect(LANE_L-20,0,20,H);ctx.fillRect(LANE_R,0,20,H);
+    // Pins
+    pins.forEach(p=>{
+        ctx.fillStyle=p.alive?'#fff':'#666';
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+        if(p.alive){ctx.fillStyle='#ff6b9d';ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();}
+    });
+    // Ball
+    ctx.fillStyle='#118ab2';ctx.beginPath();ctx.arc(ball.x,ball.y,BALL_R,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#0d6e8a';
+    ctx.beginPath();ctx.arc(ball.x-2,ball.y-2,3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(ball.x+3,ball.y+1,3,0,Math.PI*2);ctx.fill();
+    // Aim line
+    if(state==='aiming'){
+        ctx.strokeStyle='rgba(255,209,102,0.4)';ctx.setLineDash([4,4]);ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(ball.x,ball.y);ctx.lineTo(ball.x,40);ctx.stroke();
+        ctx.setLineDash([]);
+    }
+}
+
+function loop(){update();draw();if(state!=='done')requestAnimationFrame(loop);}
+
+function bowl(){
+    if(state!=='aiming')return;
+    ball.vy=-6;ball.vx=(ball.x-W/2)*0.02;
+    state='rolling';
+}
+
+canvas.addEventListener('click',bowl);
+let ty;
+canvas.addEventListener('touchstart',e=>{e.preventDefault();ty=e.touches[0].clientY;},{passive:false});
+canvas.addEventListener('touchend',e=>{
+    const dy=e.changedTouches[0].clientY-ty;
+    if(dy<-20)bowl();
+});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

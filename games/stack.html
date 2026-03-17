@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🏗️ Stack Tower — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--orange);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--purple);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--orange),var(--purple));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--orange),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--orange)}.hi-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#000;cursor:pointer}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--orange),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--orange);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--orange),var(--purple));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🏗️ Stack Tower</span></div>
+<header><h1>Stack Tower</h1><p>Tap to drop blocks — stack them perfectly!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Height</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="400" height="500"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Stack Tower</h2>
+            <div class="sub" id="oSub">Tap to drop blocks and stack them!<br>Overhanging parts fall off!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Stack Tower &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_stack',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest');
+const BEST_KEY='stack_best';
+let bestScore=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=bestScore;
+const BH=25;
+let state='idle',blocks,current,falling,score,speed,dir,animFrame,camY;
+
+function hueForLevel(i){return(i*25)%360;}
+
+function startGame(){
+    blocks=[{x:W/2-60,w:120,y:H-BH}];
+    falling=[];score=0;speed=2;dir=1;camY=0;
+    current={x:0,w:120};
+    state='running';overlay.classList.add('hidden');
+    if(animFrame)cancelAnimationFrame(animFrame);animFrame=requestAnimationFrame(loop);
+}
+
+function loop(){if(state!=='running')return;update();draw();animFrame=requestAnimationFrame(loop);}
+
+function update(){
+    current.x+=speed*dir;
+    if(current.x+current.w>W){dir=-1;current.x=W-current.w;}
+    if(current.x<0){dir=1;current.x=0;}
+    falling=falling.filter(f=>{f.y+=f.vy;f.vy+=0.3;return f.y<H+100;});
+}
+
+function drop(){
+    if(state!=='running')return;
+    const prev=blocks[blocks.length-1];
+    const overlapStart=Math.max(current.x,prev.x);
+    const overlapEnd=Math.min(current.x+current.w,prev.x+prev.w);
+    const overlap=overlapEnd-overlapStart;
+    if(overlap<=0){endGame();return;}
+    const newY=prev.y-BH;
+    // Trim off overhanging part
+    if(current.x<prev.x){
+        falling.push({x:current.x,w:prev.x-current.x,y:newY,vy:0,hue:hueForLevel(blocks.length)});
+    }
+    if(current.x+current.w>prev.x+prev.w){
+        falling.push({x:prev.x+prev.w,w:(current.x+current.w)-(prev.x+prev.w),y:newY,vy:0,hue:hueForLevel(blocks.length)});
+    }
+    blocks.push({x:overlapStart,w:overlap,y:newY});
+    score++;hScore.textContent=score;
+    current={x:0,w:overlap};
+    speed=2+score*0.15;dir=1;
+    // Camera scroll
+    if(newY<H/2)camY=H/2-newY;
+}
+
+function draw(){
+    const grad=ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'#1a0a2e');grad.addColorStop(1,'#0a0618');
+    ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+    ctx.save();ctx.translate(0,camY);
+    // Stacked blocks
+    blocks.forEach((b,i)=>{
+        ctx.fillStyle=`hsl(${hueForLevel(i)},70%,55%)`;ctx.fillRect(b.x,b.y,b.w,BH);
+        ctx.strokeStyle=`hsl(${hueForLevel(i)},70%,40%)`;ctx.lineWidth=1;ctx.strokeRect(b.x,b.y,b.w,BH);
+    });
+    // Falling
+    falling.forEach(f=>{
+        ctx.globalAlpha=0.6;ctx.fillStyle=`hsl(${f.hue},70%,55%)`;ctx.fillRect(f.x,f.y,f.w,BH);ctx.globalAlpha=1;
+    });
+    // Current moving block
+    const curY=blocks[blocks.length-1].y-BH;
+    ctx.fillStyle=`hsl(${hueForLevel(blocks.length)},70%,60%)`;ctx.fillRect(current.x,curY,current.w,BH);
+    ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(current.x,curY,current.w,BH);
+    ctx.restore();
+}
+
+function endGame(){
+    state='dead';if(animFrame)cancelAnimationFrame(animFrame);
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+    oTitle.textContent='Tower Fell!';oSub.textContent='';oScore.textContent='Height: '+score;oScore.style.display='block';overlay.classList.remove('hidden');
+}
+
+function handleTap(){if(state==='running')drop();else startGame();}
+canvas.addEventListener('click',handleTap);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();handleTap();},{passive:false});
+document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();handleTap();}});
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

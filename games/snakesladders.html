@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🐍 Snakes & Ladders — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--orange);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--orange));color:#000;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:1.8rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.p-val{color:var(--cyan)}.c-val{color:var(--pink)}.w-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--orange));color:#000;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.roll-area{text-align:center;margin-top:12px}
+.roll-btn{background:linear-gradient(135deg,var(--green),var(--orange));color:#000;border:none;padding:14px 50px;border-radius:14px;font-size:1.1rem;font-weight:700;cursor:pointer}
+.roll-btn:disabled{opacity:0.4;cursor:default}
+.dice-result{font-size:1.5rem;font-weight:900;margin-top:8px;min-height:30px}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🐍 Snakes & Ladders</span></div>
+<header><h1>Snakes & Ladders</h1><p>Roll the dice and race to 100!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">You</div><div class="value p-val" id="hYou">0</div></div>
+        <div class="hud-box"><div class="label">CPU</div><div class="value c-val" id="hCPU">0</div></div>
+        <div class="hud-box"><div class="label">Wins</div><div class="value w-val" id="hWins">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🐍 Snakes & Ladders</h2>
+            <div class="sub">Roll the dice to advance. Ladders go up, snakes slide down!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+    <div class="roll-area">
+        <button class="roll-btn" id="rollBtn" disabled>🎲 Roll Dice</button>
+        <div class="dice-result" id="diceResult"></div>
+    </div>
+</div>
+<div class="game-footer">Snakes & Ladders &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_snakesladders',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=400,H=400,CELL=W/10;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hYou=document.getElementById('hYou'),hCPU=document.getElementById('hCPU'),hWins=document.getElementById('hWins');
+const rollBtn=document.getElementById('rollBtn'),diceResult=document.getElementById('diceResult');
+const WINS_KEY='snakesladders_wins';
+let wins=+localStorage.getItem(WINS_KEY)||0;hWins.textContent=wins;
+
+// Snakes and ladders map
+const SNAKES={16:6,47:26,49:11,56:53,62:19,64:60,87:24,93:73,95:75,98:78};
+const LADDERS={1:38,4:14,9:31,21:42,28:84,36:44,51:67,71:91,80:100};
+
+let playerPos,cpuPos,turn,state;
+
+function posToXY(pos){
+    if(pos<=0)return{x:-20,y:H+10};
+    const p=pos-1;
+    const row=Math.floor(p/10);
+    const col=row%2===0?p%10:9-p%10;
+    return{x:col*CELL+CELL/2,y:H-(row+1)*CELL+CELL/2};
+}
+
+function startGame(){
+    playerPos=0;cpuPos=0;turn='player';state='playing';
+    hYou.textContent=0;hCPU.textContent=0;
+    rollBtn.disabled=false;diceResult.textContent='';
+    overlay.classList.add('hidden');oScore.style.display='none';
+    draw();
+}
+
+function rollDice(){return 1+Math.floor(Math.random()*6);}
+
+function movePlayer(who){
+    const dice=rollDice();
+    diceResult.textContent='🎲 '+dice;
+    rollBtn.disabled=true;
+
+    let pos=who==='player'?playerPos:cpuPos;
+    pos+=dice;
+    if(pos>100)pos=(who==='player'?playerPos:cpuPos);// can't go past 100
+    if(pos<=100){
+        if(SNAKES[pos]){
+            setTimeout(()=>{diceResult.textContent+=' 🐍→'+SNAKES[pos];},400);
+            pos=SNAKES[pos];
+        }
+        if(LADDERS[pos]){
+            setTimeout(()=>{diceResult.textContent+=' 🪜→'+LADDERS[pos];},400);
+            pos=LADDERS[pos];
+        }
+    }
+    if(who==='player'){playerPos=pos;hYou.textContent=pos;}
+    else{cpuPos=pos;hCPU.textContent=pos;}
+
+    setTimeout(()=>{
+        draw();
+        if(pos>=100){endGame(who);return;}
+        if(who==='player'){
+            turn='cpu';
+            setTimeout(()=>{movePlayer('cpu');},800);
+        }else{
+            turn='player';rollBtn.disabled=false;
+            diceResult.textContent='Your turn!';
+        }
+    },500);
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Board
+    for(let i=1;i<=100;i++){
+        const{x,y}=posToXY(i);
+        const row=Math.floor((i-1)/10);
+        ctx.fillStyle=(row+(i-1)%2)%2===0?'#1a1333':'#221a44';
+        ctx.fillRect(x-CELL/2,y-CELL/2,CELL,CELL);
+        ctx.fillStyle='#555';ctx.font='9px sans-serif';ctx.textAlign='center';
+        ctx.fillText(i,x,y-10);
+    }
+    // Snakes
+    ctx.strokeStyle='#ff6b9d';ctx.lineWidth=3;
+    for(const[from,to] of Object.entries(SNAKES)){
+        const a=posToXY(+from),b=posToXY(to);
+        ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+        ctx.fillStyle='#ff6b9d';ctx.font='10px sans-serif';ctx.fillText('🐍',a.x,a.y+4);
+    }
+    // Ladders
+    ctx.strokeStyle='#06d6a0';ctx.lineWidth=3;
+    for(const[from,to] of Object.entries(LADDERS)){
+        const a=posToXY(+from),b=posToXY(to);
+        ctx.beginPath();ctx.moveTo(a.x-3,a.y);ctx.lineTo(b.x-3,b.y);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(a.x+3,a.y);ctx.lineTo(b.x+3,b.y);ctx.stroke();
+    }
+    // Player token
+    if(playerPos>0){
+        const p=posToXY(playerPos);
+        ctx.fillStyle='#00e5ff';ctx.beginPath();ctx.arc(p.x-5,p.y+5,7,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#fff';ctx.font='bold 8px sans-serif';ctx.textAlign='center';ctx.fillText('P',p.x-5,p.y+8);
+    }
+    // CPU token
+    if(cpuPos>0){
+        const p=posToXY(cpuPos);
+        ctx.fillStyle='#ff6b9d';ctx.beginPath();ctx.arc(p.x+5,p.y+5,7,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#fff';ctx.font='bold 8px sans-serif';ctx.textAlign='center';ctx.fillText('C',p.x+5,p.y+8);
+    }
+}
+
+function endGame(winner){
+    state='over';
+    if(winner==='player'){wins++;localStorage.setItem(WINS_KEY,wins);hWins.textContent=wins;}
+    rollBtn.disabled=true;
+    oScore.style.display='block';
+    oScore.textContent=winner==='player'?'You Win!':'CPU Wins!';
+    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');
+}
+
+rollBtn.addEventListener('click',()=>{if(state==='playing'&&turn==='player')movePlayer('player');});
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

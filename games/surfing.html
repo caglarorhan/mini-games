@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🏄 Surfing — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--cyan);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--blue);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px;color:var(--cyan)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border)}
+canvas{display:block;width:100%;height:auto;background:#0a2a4a}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{display:none}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final{color:var(--cyan);font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.ctrl{display:none;justify-content:center;gap:10px;margin-top:12px}
+@media(max-width:768px){.ctrl{display:flex}}
+.ctrl button{width:70px;height:52px;border-radius:12px;border:2px solid var(--border);background:var(--bg-card);color:var(--text-light);font-size:1.3rem;font-weight:700;cursor:pointer}
+.ctrl button:active{background:var(--cyan);color:#000}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🏄 Surfing</span></div>
+<header><h1>Surfing</h1><p>Ride the wave, dodge obstacles!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gc" width="380" height="500"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🏄 Surfing</h2>
+            <div class="sub">Steer left/right to dodge rocks & collect coins. Ride the endless wave!</div>
+            <div class="final" id="oFinal" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+    <div class="ctrl">
+        <button id="bL">◀</button>
+        <button id="bR">▶</button>
+    </div>
+</div>
+<div class="game-footer">Surfing &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_surfing',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gc'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oFinal=document.getElementById('oFinal');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest');
+const BEST_KEY='surfing_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+let player,score,state,keys,obstacles,coins,speed,waveOff;
+
+function start(){
+    player={x:W/2,y:H-100,w:24,h:30};
+    score=0;speed=2.5;state='playing';waveOff=0;
+    keys={left:false,right:false};
+    obstacles=[];coins=[];
+    hScore.textContent=0;
+    overlay.style.display='';overlay.classList.add('hidden');oFinal.style.display='none';
+    raf();
+}
+
+function raf(){if(state!=='playing')return;update();draw();requestAnimationFrame(raf);}
+
+function update(){
+    waveOff+=0.02;
+    speed=2.5+score*0.005;
+    if(keys.left)player.x-=4;if(keys.right)player.x+=4;
+    player.x=Math.max(20,Math.min(W-20-player.w,player.x));
+    
+    // Spawn
+    if(Math.random()<0.03+speed*0.003){
+        const type=Math.random()<0.7?'rock':'shark';
+        obstacles.push({x:Math.random()*(W-40)+20,y:-30,type,r:type==='rock'?16:20});
+    }
+    if(Math.random()<0.04){
+        coins.push({x:Math.random()*(W-30)+15,y:-20,r:8});
+    }
+    
+    // Move
+    obstacles.forEach(o=>{o.y+=speed;});
+    coins.forEach(c=>{c.y+=speed;});
+    obstacles=obstacles.filter(o=>o.y<H+40);
+    
+    // Coin collect
+    coins=coins.filter(c=>{
+        if(c.y>H+20)return false;
+        const dx=player.x+player.w/2-c.x,dy=player.y+player.h/2-c.y;
+        if(Math.sqrt(dx*dx+dy*dy)<c.r+14){score+=5;hScore.textContent=score;return false;}
+        return true;
+    });
+    
+    // Obstacle hit
+    for(const o of obstacles){
+        const dx=player.x+player.w/2-o.x,dy=player.y+player.h/2-o.y;
+        if(Math.sqrt(dx*dx+dy*dy)<o.r+12){endGame();return;}
+    }
+    
+    score++;hScore.textContent=score;
+}
+
+function draw(){
+    // Water BG
+    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0a3a6a');g.addColorStop(1,'#0a2a4a');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    
+    // Waves
+    ctx.strokeStyle='rgba(0,229,255,0.15)';ctx.lineWidth=2;
+    for(let w=0;w<5;w++){
+        ctx.beginPath();
+        for(let x=0;x<W;x+=4){
+            ctx.lineTo(x,H*0.3+w*80+Math.sin(x*0.02+waveOff+w)*20);
+        }
+        ctx.stroke();
+    }
+    
+    // Coins
+    ctx.fillStyle='#ffd166';
+    coins.forEach(c=>{ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.fill();});
+    
+    // Obstacles
+    obstacles.forEach(o=>{
+        if(o.type==='rock'){
+            ctx.fillStyle='#666';ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);ctx.fill();
+            ctx.fillStyle='#888';ctx.beginPath();ctx.arc(o.x-3,o.y-3,o.r*0.5,0,Math.PI*2);ctx.fill();
+        }else{
+            ctx.fillStyle='#888';
+            ctx.beginPath();ctx.moveTo(o.x,o.y-o.r);ctx.lineTo(o.x+o.r,o.y+o.r*0.5);
+            ctx.lineTo(o.x-o.r,o.y+o.r*0.5);ctx.closePath();ctx.fill();
+            ctx.fillStyle='#aaa';ctx.beginPath();ctx.moveTo(o.x,o.y-o.r);
+            ctx.lineTo(o.x+3,o.y+o.r*0.8);ctx.lineTo(o.x-3,o.y+o.r*0.8);ctx.closePath();ctx.fill();
+        }
+    });
+    
+    // Player (surfer)
+    // Board
+    ctx.fillStyle='#ffd166';
+    ctx.beginPath();ctx.ellipse(player.x+player.w/2,player.y+player.h,18,5,0,0,Math.PI*2);ctx.fill();
+    // Body
+    ctx.fillStyle='#00e5ff';
+    ctx.fillRect(player.x+4,player.y,player.w-8,player.h-5);
+    // Head
+    ctx.fillStyle='#fca';ctx.beginPath();ctx.arc(player.x+player.w/2,player.y-4,6,0,Math.PI*2);ctx.fill();
+}
+
+function endGame(){
+    state='over';
+    if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oFinal.style.display='block';oFinal.textContent='Score: '+score;
+    document.getElementById('startBtn').textContent='Play Again';
+    overlay.style.display='';overlay.classList.remove('hidden');
+}
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a')keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d')keys.right=true;
+});
+document.addEventListener('keyup',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a')keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d')keys.right=false;
+});
+
+// Touch/swipe
+let touchX=null;
+canvas.addEventListener('touchstart',e=>{e.preventDefault();touchX=e.touches[0].clientX;});
+canvas.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    const x=e.touches[0].clientX;
+    if(touchX!==null){
+        if(x<touchX-5)keys.left=true,keys.right=false;
+        else if(x>touchX+5)keys.right=true,keys.left=false;
+        else keys.left=false,keys.right=false;
+        touchX=x;
+    }
+});
+canvas.addEventListener('touchend',()=>{keys.left=false;keys.right=false;touchX=null;});
+
+document.getElementById('bL').addEventListener('touchstart',e=>{e.preventDefault();keys.left=true});
+document.getElementById('bL').addEventListener('touchend',()=>keys.left=false);
+document.getElementById('bR').addEventListener('touchstart',e=>{e.preventDefault();keys.right=true});
+document.getElementById('bR').addEventListener('touchend',()=>keys.right=false);
+
+document.getElementById('startBtn').addEventListener('click',start);
+})();
+</script>
+</body>
+</html>

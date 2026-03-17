@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🐧 Pengo — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--cyan);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--blue);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--cyan)}.l-val{color:var(--green)}.h-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--cyan);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.d-pad{display:grid;grid-template-columns:56px 56px 56px;grid-template-rows:56px 56px 56px;gap:4px;justify-content:center;margin-top:12px}
+.ctrl-btn{width:56px;height:56px;border:none;border-radius:14px;font-size:1.3rem;font-weight:700;cursor:pointer;background:var(--bg-card);color:var(--text-light);border:1px solid var(--border)}
+.d-pad .ctrl-btn:nth-child(1){grid-column:2;grid-row:1}
+.d-pad .ctrl-btn:nth-child(2){grid-column:1;grid-row:2}
+.d-pad .ctrl-btn:nth-child(3){grid-column:2;grid-row:2;background:linear-gradient(135deg,var(--cyan),var(--blue));color:#fff;font-size:.8rem}
+.d-pad .ctrl-btn:nth-child(4){grid-column:3;grid-row:2}
+.d-pad .ctrl-btn:nth-child(5){grid-column:2;grid-row:3}
+@media(max-width:768px){.d-pad{display:grid}}
+@media(min-width:769px){.d-pad{display:none}}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🐧 Pengo</span></div>
+<header><h1>Pengo</h1><p>Push ice blocks to crush enemies!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Level</div><div class="value l-val" id="hLevel">1</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value h-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="390" height="390"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🐧 Pengo</h2>
+            <div class="sub">Push ice blocks to squish Sno-Bees!<br>Use D-pad + Push button</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+    <div class="d-pad">
+        <button class="ctrl-btn" data-dir="up">▲</button>
+        <button class="ctrl-btn" data-dir="left">◄</button>
+        <button class="ctrl-btn" data-dir="push">PUSH</button>
+        <button class="ctrl-btn" data-dir="right">►</button>
+        <button class="ctrl-btn" data-dir="down">▼</button>
+    </div>
+</div>
+<div class="game-footer">Pengo &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_pengo',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=390,H=390;
+const TILE=30,COLS=13,ROWS=13;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hLevel=document.getElementById('hLevel'),hBest=document.getElementById('hBest');
+const BEST_KEY='pengo_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+let grid,player,enemies,score,level,state,raf,slidingBlocks;
+
+function initLevel(){
+    grid=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+    slidingBlocks=[];
+    // Place ice blocks randomly (~40%)
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+        if(Math.random()<0.4)grid[r][c]=1;
+    }
+    // Clear player start area
+    const pr=ROWS-1,pc=Math.floor(COLS/2);
+    grid[pr][pc]=0;grid[pr-1][pc]=0;grid[pr][pc-1]=0;grid[pr][pc+1]=0;
+    player={r:pr,c:pc,dir:'up'};
+    // Place enemies
+    enemies=[];
+    const numE=2+level;
+    for(let i=0;i<numE;i++){
+        let er,ec;
+        do{er=Math.floor(Math.random()*ROWS);ec=Math.floor(Math.random()*COLS);}
+        while(grid[er][ec]||Math.abs(er-pr)<3);
+        enemies.push({r:er,c:ec,dir:['up','down','left','right'][Math.floor(Math.random()*4)],timer:0});
+        grid[er][ec]=0;
+    }
+}
+
+function startGame(){
+    score=0;level=1;state='playing';
+    hScore.textContent=0;hLevel.textContent=1;
+    initLevel();
+    overlay.classList.add('hidden');oScore.style.display='none';
+    if(raf)cancelAnimationFrame(raf);
+    loop();
+}
+
+function movePlayer(dir){
+    if(state!=='playing')return;
+    player.dir=dir;
+    const dr=dir==='up'?-1:dir==='down'?1:0;
+    const dc=dir==='left'?-1:dir==='right'?1:0;
+    const nr=player.r+dr,nc=player.c+dc;
+    if(nr<0||nr>=ROWS||nc<0||nc>=COLS)return;
+    if(grid[nr][nc])return;// blocked by ice
+    player.r=nr;player.c=nc;
+}
+
+function pushBlock(){
+    if(state!=='playing')return;
+    const dr=player.dir==='up'?-1:player.dir==='down'?1:0;
+    const dc=player.dir==='left'?-1:player.dir==='right'?1:0;
+    const br=player.r+dr,bc=player.c+dc;
+    if(br<0||br>=ROWS||bc<0||bc>=COLS)return;
+    if(!grid[br][bc])return;// no block
+    grid[br][bc]=0;
+    slidingBlocks.push({r:br,c:bc,dr,dc});
+}
+
+function updateSliding(){
+    for(let i=slidingBlocks.length-1;i>=0;i--){
+        const b=slidingBlocks[i];
+        const nr=b.r+b.dr,nc=b.c+b.dc;
+        // Check enemy hit
+        for(let ei=enemies.length-1;ei>=0;ei--){
+            if(enemies[ei].r===b.r&&enemies[ei].c===b.c){
+                enemies.splice(ei,1);score+=100;hScore.textContent=score;
+            }
+        }
+        if(nr<0||nr>=ROWS||nc<0||nc>=COLS||grid[nr][nc]){
+            grid[b.r][b.c]=1;slidingBlocks.splice(i,1);
+        }else{
+            b.r=nr;b.c=nc;
+        }
+    }
+}
+
+function moveEnemies(){
+    for(const e of enemies){
+        e.timer++;
+        if(e.timer<15)continue;
+        e.timer=0;
+        // Simple AI: move toward player sometimes
+        if(Math.random()<0.4){
+            const dr=player.r>e.r?1:player.r<e.r?-1:0;
+            const dc=player.c>e.c?1:player.c<e.c?-1:0;
+            if(Math.random()<0.5&&dr!==0)e.dir=dr>0?'down':'up';
+            else if(dc!==0)e.dir=dc>0?'right':'left';
+        }else if(Math.random()<0.3){
+            e.dir=['up','down','left','right'][Math.floor(Math.random()*4)];
+        }
+        const ndr=e.dir==='up'?-1:e.dir==='down'?1:0;
+        const ndc=e.dir==='left'?-1:e.dir==='right'?1:0;
+        const nr=e.r+ndr,nc=e.c+ndc;
+        if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&!grid[nr][nc]){
+            e.r=nr;e.c=nc;
+        }
+        // Check player collision
+        if(e.r===player.r&&e.c===player.c){endGame();return;}
+    }
+    // Level complete?
+    if(enemies.length===0){level++;hLevel.textContent=level;initLevel();}
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Grid
+    for(let r=0;r<ROWS;r++){
+        for(let c=0;c<COLS;c++){
+            if(grid[r][c]){
+                ctx.fillStyle='#4488cc';ctx.fillRect(c*TILE,r*TILE,TILE-1,TILE-1);
+                ctx.fillStyle='#66aaee';ctx.fillRect(c*TILE+2,r*TILE+2,TILE-5,TILE-5);
+            }
+        }
+    }
+    // Sliding blocks
+    ctx.fillStyle='#88ccff';
+    for(const b of slidingBlocks)ctx.fillRect(b.c*TILE,b.r*TILE,TILE-1,TILE-1);
+    // Player (penguin)
+    ctx.fillStyle='#00e5ff';
+    ctx.fillRect(player.c*TILE+2,player.r*TILE+2,TILE-4,TILE-4);
+    ctx.fillStyle='#fff';ctx.fillRect(player.c*TILE+6,player.r*TILE+6,5,5);
+    ctx.fillStyle='#ffd166';ctx.fillRect(player.c*TILE+8,player.r*TILE+14,8,3);
+    // Enemies (sno-bees)
+    for(const e of enemies){
+        ctx.fillStyle='#ff6b9d';
+        ctx.beginPath();ctx.arc(e.c*TILE+TILE/2,e.r*TILE+TILE/2,TILE*0.35,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#fff';
+        ctx.fillRect(e.c*TILE+8,e.r*TILE+8,4,4);ctx.fillRect(e.c*TILE+16,e.r*TILE+8,4,4);
+    }
+}
+
+let fc=0;
+function loop(){
+    if(state!=='playing')return;
+    fc++;
+    updateSliding();
+    if(fc%2===0)moveEnemies();
+    draw();
+    raf=requestAnimationFrame(loop);
+}
+
+function endGame(){
+    state='over';if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oScore.style.display='block';oScore.textContent='Score: '+score;
+    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');
+}
+
+document.addEventListener('keydown',e=>{
+    if(state!=='playing')return;
+    if(e.key==='ArrowUp'||e.key==='w')movePlayer('up');
+    if(e.key==='ArrowDown'||e.key==='s')movePlayer('down');
+    if(e.key==='ArrowLeft'||e.key==='a')movePlayer('left');
+    if(e.key==='ArrowRight'||e.key==='d')movePlayer('right');
+    if(e.key===' '||e.key==='Enter'){e.preventDefault();pushBlock();}
+});
+document.querySelectorAll('[data-dir]').forEach(btn=>{
+    const d=btn.dataset.dir;
+    btn.addEventListener('click',()=>{if(d==='push')pushBlock();else movePlayer(d);});
+    btn.addEventListener('touchstart',e=>{e.preventDefault();if(d==='push')pushBlock();else movePlayer(d);},{passive:false});
+});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

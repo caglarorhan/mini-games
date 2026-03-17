@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🧮 Nim — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--purple);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--cyan);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--purple),var(--cyan));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:400px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.t-val{color:var(--cyan)}.w-val{color:var(--yellow)}
+.game-area{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a;padding:25px;min-height:380px}
+.piles{display:flex;flex-direction:column;gap:16px;margin-bottom:20px}
+.pile{display:flex;align-items:center;gap:8px}
+.pile-label{font-size:.8rem;color:var(--text-muted);width:50px;font-weight:700}
+.stones{display:flex;gap:4px;flex-wrap:wrap}
+.stone{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--purple));cursor:pointer;transition:all .2s;border:2px solid transparent}
+.stone.selected{border-color:#fff;transform:scale(1.15);box-shadow:0 0 10px rgba(0,229,255,0.5)}
+.stone.taken{opacity:0.15;pointer-events:none}
+.turn-info{text-align:center;margin:15px 0;font-size:1rem;font-weight:700;min-height:30px}
+.action-btns{display:flex;gap:10px;justify-content:center}
+.act-btn{padding:12px 30px;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer}
+.act-btn.take{background:linear-gradient(135deg,var(--purple),var(--cyan));color:#fff}
+.act-btn.take:disabled{opacity:0.4;cursor:default}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--cyan);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--purple),var(--cyan));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🧮 Nim</span></div>
+<header><h1>Nim</h1><p>Take stones — last to take loses!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Turn</div><div class="value t-val" id="hTurn">You</div></div>
+        <div class="hud-box"><div class="label">Wins</div><div class="value w-val" id="hWins">0</div></div>
+    </div>
+    <div class="game-area" id="gameArea">
+        <div class="piles" id="piles"></div>
+        <div class="turn-info" id="turnInfo">Select stones from ONE pile, then TAKE</div>
+        <div class="action-btns"><button class="act-btn take" id="takeBtn" disabled>Take</button></div>
+        <div class="overlay" id="overlay">
+            <h2>🧮 Nim</h2>
+            <div class="sub">Take any number of stones from ONE pile per turn. The player who takes the last stone LOSES!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Nim &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_nim',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const pilesEl=document.getElementById('piles'),turnInfo=document.getElementById('turnInfo');
+const takeBtn=document.getElementById('takeBtn');
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hTurn=document.getElementById('hTurn'),hWins=document.getElementById('hWins');
+const WINS_KEY='nim_wins';
+let wins=+localStorage.getItem(WINS_KEY)||0;hWins.textContent=wins;
+
+let piles,selectedPile,selectedCount,turn,state;
+const INIT_PILES=[1,3,5,7];
+
+function startGame(){
+    piles=[...INIT_PILES];selectedPile=-1;selectedCount=0;turn='player';state='playing';
+    hTurn.textContent='You';turnInfo.textContent='Select stones from ONE pile, then TAKE';
+    takeBtn.disabled=true;
+    overlay.classList.add('hidden');oScore.style.display='none';
+    render();
+}
+
+function render(){
+    pilesEl.innerHTML='';
+    piles.forEach((count,pi)=>{
+        const row=document.createElement('div');row.className='pile';
+        const label=document.createElement('div');label.className='pile-label';label.textContent='Pile '+(pi+1);
+        row.appendChild(label);
+        const stones=document.createElement('div');stones.className='stones';
+        for(let i=0;i<INIT_PILES[pi];i++){
+            const s=document.createElement('div');s.className='stone';
+            if(i>=count)s.classList.add('taken');
+            else{
+                s.addEventListener('click',()=>selectStone(pi,i));
+            }
+            stones.appendChild(s);
+        }
+        row.appendChild(stones);pilesEl.appendChild(row);
+    });
+    updateSelection();
+}
+
+function selectStone(pile,idx){
+    if(state!=='playing'||turn!=='player')return;
+    if(selectedPile>=0&&selectedPile!==pile){
+        // Reset selection
+        selectedPile=-1;selectedCount=0;
+    }
+    selectedPile=pile;
+    // Select from this stone to end
+    selectedCount=piles[pile]-idx;
+    updateSelection();
+}
+
+function updateSelection(){
+    const allStones=pilesEl.querySelectorAll('.pile');
+    allStones.forEach((row,pi)=>{
+        const stones=row.querySelectorAll('.stone');
+        stones.forEach((s,si)=>{
+            s.classList.remove('selected');
+            if(pi===selectedPile&&si>=piles[pi]-selectedCount&&si<piles[pi])s.classList.add('selected');
+        });
+    });
+    takeBtn.disabled=selectedCount<=0;
+}
+
+function takeTurn(){
+    if(state!=='playing'||selectedCount<=0)return;
+    piles[selectedPile]-=selectedCount;
+    selectedPile=-1;selectedCount=0;
+    render();
+    if(piles.every(p=>p===0)){endGame(turn==='player'?'cpu':'player');return;}
+    // Check if only 1 stone left total
+    turn=turn==='player'?'cpu':'player';
+    hTurn.textContent=turn==='player'?'You':'CPU';
+    if(turn==='cpu'){
+        turnInfo.textContent='CPU is thinking...';
+        setTimeout(cpuMove,700);
+    }else{
+        turnInfo.textContent='Select stones from ONE pile, then TAKE';
+    }
+}
+
+function cpuMove(){
+    if(state!=='playing')return;
+    // Nim strategy: XOR
+    let nimSum=0;piles.forEach(p=>nimSum^=p);
+    let movePile=-1,moveCount=0;
+    if(nimSum>0){
+        for(let i=0;i<piles.length;i++){
+            const target=piles[i]^nimSum;
+            if(target<piles[i]){
+                movePile=i;moveCount=piles[i]-target;
+                // Don't take all if it's the last pile with stones — check
+                break;
+            }
+        }
+    }
+    if(movePile<0){
+        // Random move
+        const nonEmpty=piles.map((p,i)=>({p,i})).filter(x=>x.p>0);
+        const pick=nonEmpty[Math.floor(Math.random()*nonEmpty.length)];
+        movePile=pick.i;moveCount=1+Math.floor(Math.random()*pick.p);
+    }
+    piles[movePile]-=moveCount;
+    render();
+    if(piles.every(p=>p===0)){endGame('player');return;}
+    turn='player';hTurn.textContent='You';
+    turnInfo.textContent='Select stones from ONE pile, then TAKE';
+}
+
+function endGame(winner){
+    state='over';
+    if(winner==='player'){wins++;localStorage.setItem(WINS_KEY,wins);hWins.textContent=wins;}
+    oScore.style.display='block';
+    oScore.textContent=winner==='player'?'You Win!':'CPU Wins!';
+    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');
+}
+
+takeBtn.addEventListener('click',takeTurn);
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

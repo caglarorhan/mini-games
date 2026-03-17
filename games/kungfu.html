@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🥋 Kung Fu — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--orange);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--pink);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--orange),var(--pink));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--orange),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:480px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px;color:var(--orange)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border)}
+canvas{display:block;width:100%;height:auto;background:#1a0a0a}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{display:none}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final{color:var(--orange);font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--orange),var(--pink));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.ctrl{display:none;justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+@media(max-width:768px){.ctrl{display:flex}}
+.ctrl button{min-width:50px;height:48px;border-radius:12px;border:2px solid var(--border);background:var(--bg-card);color:var(--text-light);font-size:1rem;font-weight:700;cursor:pointer;padding:0 10px}
+.ctrl button:active{background:var(--orange);color:#000}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🥋 Kung Fu</span></div>
+<header><h1>Kung Fu Master</h1><p>Fight your way through 5 floors!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">HP</div><div class="value" id="hHP" style="color:var(--green)">100</div></div>
+        <div class="hud-box"><div class="label">Floor</div><div class="value" id="hFloor">1</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gc" width="460" height="300"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🥋 Kung Fu Master</h2>
+            <div class="sub">Punch & kick enemies! Clear 5 floors to win. Crouch to dodge!</div>
+            <div class="final" id="oFinal" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+    <div class="ctrl">
+        <button id="bL">◀</button>
+        <button id="bCr">↓</button>
+        <button id="bR">▶</button>
+        <button id="bP">👊</button>
+        <button id="bK">🦶</button>
+    </div>
+</div>
+<div class="game-footer">Kung Fu Master &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_kungfu',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gc'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oFinal=document.getElementById('oFinal');
+const hScore=document.getElementById('hScore'),hHP=document.getElementById('hHP'),hFloor=document.getElementById('hFloor'),hBest=document.getElementById('hBest');
+const BEST_KEY='kungfu_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+const GND=H-40,PW=20,PH=40,SPEED=3;
+
+let player,score,hp,floor,state,keys,enemies,spawnCd,attackTimer,floorKills;
+
+function start(){
+    player={x:30,y:GND-PH,facing:1,crouching:false,attacking:0,attackType:''};
+    score=0;hp=100;floor=1;state='playing';floorKills=0;
+    keys={left:false,right:false,crouch:false,punch:false,kick:false};
+    enemies=[];spawnCd=0;attackTimer=0;
+    hScore.textContent=0;hHP.textContent=100;hFloor.textContent=1;
+    overlay.style.display='';overlay.classList.add('hidden');oFinal.style.display='none';
+    raf();
+}
+
+function raf(){if(state!=='playing')return;update();draw();requestAnimationFrame(raf);}
+
+function spawnEnemy(){
+    const fromRight=Math.random()<0.5;
+    const type=Math.random()<0.7?'grunt':'knife';
+    enemies.push({
+        x:fromRight?W+20:-20,y:GND-PH,dir:fromRight?-1:1,
+        type,speed:type==='grunt'?1.2+floor*0.2:1.8+floor*0.15,
+        alive:true,hp:type==='grunt'?1:2,attackCd:0
+    });
+}
+
+function update(){
+    // Move
+    player.crouching=keys.crouch;
+    if(keys.left){player.x-=SPEED;player.facing=-1;}
+    if(keys.right){player.x+=SPEED;player.facing=1;}
+    player.x=Math.max(0,Math.min(W-PW,player.x));
+    
+    // Attack
+    if(player.attacking>0)player.attacking--;
+    if(keys.punch&&player.attacking===0){player.attacking=12;player.attackType='punch';keys.punch=false;}
+    if(keys.kick&&player.attacking===0){player.attacking=15;player.attackType='kick';keys.kick=false;}
+    
+    // Spawn
+    spawnCd--;
+    if(spawnCd<=0){spawnEnemy();spawnCd=Math.max(30,90-floor*10);}
+    
+    // Enemies
+    enemies.forEach(e=>{
+        if(!e.alive)return;
+        const dx=player.x-e.x;
+        e.dir=dx>0?1:-1;
+        const dist=Math.abs(dx);
+        if(dist>30)e.x+=e.dir*e.speed;
+        else{
+            // Attack player
+            e.attackCd--;
+            if(e.attackCd<=0){
+                if(!player.crouching){hp-=e.type==='knife'?8:5;hHP.textContent=Math.max(0,hp);}
+                e.attackCd=40;
+            }
+        }
+    });
+    
+    // Player attack hit
+    if(player.attacking===8||player.attacking===10){
+        const range=player.attackType==='kick'?45:35;
+        enemies.forEach(e=>{
+            if(!e.alive)return;
+            const dx=e.x-player.x;
+            if(Math.abs(dx)<range&&dx*player.facing>=0&&Math.abs(e.y-player.y)<20){
+                e.hp--;
+                if(e.hp<=0){
+                    e.alive=false;
+                    const pts=e.type==='grunt'?100:200;
+                    score+=pts;hScore.textContent=score;floorKills++;
+                }
+            }
+        });
+    }
+    
+    enemies=enemies.filter(e=>e.alive||false);
+    
+    // Floor clear
+    if(floorKills>=5+floor*2){
+        floor++;floorKills=0;
+        if(floor>5){score+=1000;hScore.textContent=score;endGame();return;}
+        hFloor.textContent=floor;enemies=[];hp=Math.min(100,hp+20);hHP.textContent=hp;
+    }
+    
+    if(hp<=0)endGame();
+}
+
+function draw(){
+    ctx.clearRect(0,0,W,H);
+    // BG
+    const floorColors=['#1a0a0a','#0a1a0a','#0a0a1a','#1a1a0a','#1a0a1a'];
+    ctx.fillStyle=floorColors[(floor-1)%5];ctx.fillRect(0,0,W,H);
+    // Ground
+    ctx.fillStyle='#3a2a1a';ctx.fillRect(0,GND,W,H-GND);
+    ctx.fillStyle='#5a4a3a';ctx.fillRect(0,GND,W,3);
+    
+    // HP bar
+    ctx.fillStyle='#333';ctx.fillRect(10,10,100,8);
+    ctx.fillStyle=hp>30?'#06d6a0':'#ff6b6b';ctx.fillRect(10,10,hp,8);
+    
+    // Player
+    const ph=player.crouching?PH*0.6:PH;
+    const py=player.crouching?GND-ph:GND-PH;
+    ctx.fillStyle='#00e5ff';ctx.fillRect(player.x,py,PW,ph);
+    // Head
+    ctx.fillStyle='#ffd166';ctx.beginPath();ctx.arc(player.x+PW/2,py-4,7,0,Math.PI*2);ctx.fill();
+    // Attack
+    if(player.attacking>0){
+        ctx.fillStyle='#ff8a47';
+        const ax=player.facing>0?player.x+PW:player.x-(player.attackType==='kick'?25:18);
+        const aw=player.attackType==='kick'?25:18;
+        ctx.fillRect(ax,py+8,aw,6);
+    }
+    
+    // Enemies
+    enemies.forEach(e=>{
+        if(!e.alive)return;
+        ctx.fillStyle=e.type==='grunt'?'#ff6b9d':'#a855f7';
+        ctx.fillRect(e.x,e.y,16,PH);
+        ctx.fillStyle='#fca';ctx.beginPath();ctx.arc(e.x+8,e.y-3,5,0,Math.PI*2);ctx.fill();
+        if(e.type==='knife'){
+            ctx.fillStyle='#ccc';ctx.fillRect(e.x+e.dir*8,e.y+12,10,2);
+        }
+    });
+    
+    // Floor indicator
+    ctx.fillStyle='#fff';ctx.font='bold 12px sans-serif';ctx.textAlign='right';
+    ctx.fillText('Floor '+floor+'/5',W-10,22);
+    ctx.fillText('Kills: '+floorKills+'/'+(5+floor*2),W-10,38);
+}
+
+function endGame(){
+    state='over';
+    if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oFinal.style.display='block';oFinal.textContent='Score: '+score+(floor>5?' — YOU WIN!':' | Floor: '+floor);
+    document.getElementById('startBtn').textContent='Play Again';
+    overlay.style.display='';overlay.classList.remove('hidden');
+}
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a')keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d')keys.right=true;
+    if(e.key==='ArrowDown'||e.key==='s')keys.crouch=true;
+    if(e.key==='z'||e.key==='j')keys.punch=true;
+    if(e.key==='x'||e.key==='k')keys.kick=true;
+});
+document.addEventListener('keyup',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a')keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d')keys.right=false;
+    if(e.key==='ArrowDown'||e.key==='s')keys.crouch=false;
+});
+
+const bL=document.getElementById('bL'),bR=document.getElementById('bR'),bCr=document.getElementById('bCr'),bP=document.getElementById('bP'),bK=document.getElementById('bK');
+bL.addEventListener('touchstart',e=>{e.preventDefault();keys.left=true});bL.addEventListener('touchend',()=>keys.left=false);
+bR.addEventListener('touchstart',e=>{e.preventDefault();keys.right=true});bR.addEventListener('touchend',()=>keys.right=false);
+bCr.addEventListener('touchstart',e=>{e.preventDefault();keys.crouch=true});bCr.addEventListener('touchend',()=>keys.crouch=false);
+bP.addEventListener('touchstart',e=>{e.preventDefault();keys.punch=true});
+bK.addEventListener('touchstart',e=>{e.preventDefault();keys.kick=true});
+
+document.getElementById('startBtn').addEventListener('click',start);
+})();
+</script>
+</body>
+</html>

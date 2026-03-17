@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>⚡ Avoider — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--pink);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--purple);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:380px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--pink)}.t-val{color:var(--orange)}.h-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--pink);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">⚡ Avoider</span></div>
+<header><h1>Avoider</h1><p>Dodge falling objects with your cursor!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Time</div><div class="value t-val" id="hTime">0s</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value h-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="340" height="460"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>⚡ Avoider</h2>
+            <div class="sub">Move mouse/finger to dodge falling hazards.<br>Survive as long as you can!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Avoider &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_avoider',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=340,H=460;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hTime=document.getElementById('hTime'),hBest=document.getElementById('hBest');
+const BEST_KEY='avoider_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+let px,py,hazards,particles,score,elapsed,spawnRate,state,raf,lastTime;
+
+function startGame(){
+    px=W/2;py=H-40;hazards=[];particles=[];score=0;elapsed=0;spawnRate=40;
+    state='playing';lastTime=Date.now();
+    hScore.textContent=0;hTime.textContent='0s';
+    overlay.classList.add('hidden');oScore.style.display='none';
+    if(raf)cancelAnimationFrame(raf);
+    loop();
+}
+
+let fc=0;
+function update(){
+    const now=Date.now(),dt=(now-lastTime)/1000;lastTime=now;
+    elapsed+=dt;
+    score=Math.floor(elapsed*10);
+    hScore.textContent=score;hTime.textContent=elapsed.toFixed(1)+'s';
+
+    fc++;
+    spawnRate=Math.max(8,40-elapsed*0.5);
+    if(fc%Math.floor(spawnRate)===0){
+        const w=10+Math.random()*30;
+        const speed=2+elapsed*0.1+Math.random()*2;
+        hazards.push({x:Math.random()*(W-w),y:-20,w,h:w*0.6,speed,color:Math.random()<0.5?'#ff6b9d':'#a855f7'});
+    }
+
+    for(let i=hazards.length-1;i>=0;i--){
+        hazards[i].y+=hazards[i].speed;
+        if(hazards[i].y>H+20){hazards.splice(i,1);continue;}
+        const h=hazards[i];
+        // Collision
+        if(px>h.x-8&&px<h.x+h.w+8&&py>h.y-8&&py<h.y+h.h+8){
+            // Particles
+            for(let p=0;p<15;p++){
+                particles.push({x:px,y:py,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:1,color:'#ff6b9d'});
+            }
+            endGame();return;
+        }
+    }
+    // Particles
+    for(let i=particles.length-1;i>=0;i--){
+        const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life-=dt*2;
+        if(p.life<=0)particles.splice(i,1);
+    }
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Hazards
+    for(const h of hazards){
+        ctx.fillStyle=h.color;ctx.fillRect(h.x,h.y,h.w,h.h);
+    }
+    // Player
+    ctx.fillStyle='#00e5ff';
+    ctx.beginPath();ctx.arc(px,py,8,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,229,255,0.2)';
+    ctx.beginPath();ctx.arc(px,py,14,0,Math.PI*2);ctx.fill();
+    // Particles
+    for(const p of particles){
+        ctx.globalAlpha=p.life;ctx.fillStyle=p.color;
+        ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+}
+
+function loop(){
+    if(state!=='playing')return;
+    update();draw();raf=requestAnimationFrame(loop);
+}
+
+function endGame(){
+    state='over';if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oScore.style.display='block';oScore.textContent='Survived: '+elapsed.toFixed(1)+'s  Score: '+score;
+    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');
+}
+
+function getPos(e){
+    const rect=canvas.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    return{x:(t.clientX-rect.left)*(W/rect.width),y:(t.clientY-rect.top)*(H/rect.height)};
+}
+canvas.addEventListener('mousemove',e=>{if(state==='playing'){const p=getPos(e);px=p.x;py=p.y;}});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(state==='playing'){const p=getPos(e);px=p.x;py=p.y;}},{passive:false});
+canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state==='playing'){const p=getPos(e);px=p.x;py=p.y;}},{passive:false});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🚀 Scramble — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--cyan);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--cyan));color:#000;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:500px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--green)}.f-val{color:var(--orange)}.h-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--cyan));color:#000;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.controls{display:none;gap:8px;margin-top:12px;justify-content:center}
+@media(max-width:768px){.controls{display:flex}}
+.ctrl-btn{width:56px;height:56px;border:none;border-radius:14px;font-size:1.3rem;font-weight:700;cursor:pointer;background:var(--bg-card);color:var(--text-light);border:1px solid var(--border)}
+.ctrl-btn.fire{background:linear-gradient(135deg,var(--green),var(--cyan));color:#000;width:70px;font-size:.9rem}
+.ctrl-btn.bomb{background:linear-gradient(135deg,var(--orange),var(--yellow));color:#000;width:70px;font-size:.9rem}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🚀 Scramble</span></div>
+<header><h1>Scramble</h1><p>Navigate caves, destroy targets!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Fuel</div><div class="value f-val" id="hFuel">100</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value h-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="480" height="280"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🚀 Scramble</h2>
+            <div class="sub">Fly through caves, shoot rockets & fuel tanks. Bomb ground targets!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+    <div class="controls">
+        <button class="ctrl-btn" data-act="up">▲</button>
+        <button class="ctrl-btn" data-act="down">▼</button>
+        <button class="ctrl-btn fire" data-act="fire">FIRE</button>
+        <button class="ctrl-btn bomb" data-act="bomb">BOMB</button>
+    </div>
+</div>
+<div class="game-footer">Scramble &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_scramble',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=480,H=280;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hFuel=document.getElementById('hFuel'),hBest=document.getElementById('hBest');
+const BEST_KEY='scramble_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+let px,py,vy,fuel,score,scrollX,terrain,ceiling,targets,bullets,bombs,rockets,state,raf;
+let keys={};
+
+function genTerrain(){
+    terrain=[];ceiling=[];
+    let groundH=210,ceilH=30;
+    for(let i=0;i<3000;i++){
+        groundH+=Math.random()*6-3;
+        groundH=Math.max(180,Math.min(260,groundH));
+        ceilH+=Math.random()*4-2;
+        ceilH=Math.max(10,Math.min(80,ceilH));
+        terrain.push(groundH);ceiling.push(ceilH);
+    }
+    // Place targets on ground
+    targets=[];
+    for(let i=100;i<3000;i+=Math.floor(40+Math.random()*60)){
+        const type=Math.random()<0.3?'fuel':'rocket';
+        targets.push({x:i,y:terrain[i]-8,type,alive:true});
+    }
+    rockets=[];
+}
+
+function startGame(){
+    px=60;py=140;vy=0;fuel=100;score=0;scrollX=0;
+    bullets=[];bombs=[];rockets=[];
+    genTerrain();
+    state='playing';
+    hScore.textContent=0;hFuel.textContent=100;
+    overlay.classList.add('hidden');oScore.style.display='none';
+    if(raf)cancelAnimationFrame(raf);
+    loop();
+}
+
+function fire(){
+    if(state!=='playing')return;
+    bullets.push({x:px+20,y:py+5,vx:6});
+}
+function dropBomb(){
+    if(state!=='playing')return;
+    bombs.push({x:px+5,y:py+10,vx:2,vy:0});
+}
+
+function update(){
+    // Scroll
+    scrollX+=2;
+    // Player
+    if(keys.up)vy-=0.4;
+    if(keys.down)vy+=0.3;
+    vy+=0.15;// gravity
+    vy=Math.max(-3,Math.min(3,vy));
+    py+=vy;
+    // Fuel
+    fuel-=0.05;
+    if(fuel<=0){endGame();return;}
+    hFuel.textContent=Math.ceil(fuel);
+    // Ground/ceiling collision
+    const gi=Math.floor(scrollX+px);
+    if(gi>=0&&gi<terrain.length){
+        if(py+12>=terrain[gi]||py<=ceiling[gi]){endGame();return;}
+    }
+    // Bullets
+    for(let i=bullets.length-1;i>=0;i--){
+        bullets[i].x+=bullets[i].vx;
+        if(bullets[i].x>scrollX+W+20){bullets.splice(i,1);continue;}
+        // Hit rockets in air
+        for(let ri=rockets.length-1;ri>=0;ri--){
+            if(Math.abs(bullets[i].x-(rockets[ri].x))<10&&Math.abs(bullets[i].y-rockets[ri].y)<10){
+                rockets.splice(ri,1);bullets.splice(i,1);score+=50;break;
+            }
+        }
+    }
+    // Bombs
+    for(let i=bombs.length-1;i>=0;i--){
+        bombs[i].x+=bombs[i].vx;bombs[i].vy+=0.1;bombs[i].y+=bombs[i].vy;
+        const bgi=Math.floor(bombs[i].x);
+        if(bgi>=0&&bgi<terrain.length&&bombs[i].y>=terrain[bgi]){
+            // Hit ground target?
+            for(const t of targets){
+                if(t.alive&&Math.abs(t.x-bombs[i].x)<15){
+                    t.alive=false;
+                    if(t.type==='fuel'){fuel=Math.min(100,fuel+25);score+=30;}
+                    else score+=50;
+                }
+            }
+            bombs.splice(i,1);
+        }
+    }
+    // Enemy rockets
+    for(const t of targets){
+        if(t.alive&&t.type==='rocket'&&Math.abs(t.x-scrollX-px)<200&&Math.random()<0.01){
+            rockets.push({x:t.x,y:t.y,vy:-2.5});
+        }
+    }
+    for(let i=rockets.length-1;i>=0;i--){
+        rockets[i].y+=rockets[i].vy;
+        if(rockets[i].y<0){rockets.splice(i,1);continue;}
+        if(Math.abs(rockets[i].x-scrollX-px)<12&&Math.abs(rockets[i].y-py)<12){
+            endGame();return;
+        }
+    }
+    hScore.textContent=score;
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    const sx=Math.floor(scrollX);
+    // Ceiling
+    ctx.fillStyle='#1a2a3a';
+    ctx.beginPath();ctx.moveTo(0,0);
+    for(let i=0;i<W;i++){
+        const gi=sx+i;
+        ctx.lineTo(i,gi<ceiling.length?ceiling[gi]:30);
+    }
+    ctx.lineTo(W,0);ctx.fill();
+    // Ground
+    ctx.fillStyle='#2a3a2a';
+    ctx.beginPath();ctx.moveTo(0,H);
+    for(let i=0;i<W;i++){
+        const gi=sx+i;
+        ctx.lineTo(i,gi<terrain.length?terrain[gi]:220);
+    }
+    ctx.lineTo(W,H);ctx.fill();
+    // Targets
+    for(const t of targets){
+        if(!t.alive)continue;
+        const tx=t.x-sx;
+        if(tx<-20||tx>W+20)continue;
+        ctx.fillStyle=t.type==='fuel'?'#ffd166':'#ff6b9d';
+        ctx.fillRect(tx-5,t.y-8,10,8);
+        if(t.type==='fuel'){ctx.fillStyle='#000';ctx.font='7px sans-serif';ctx.textAlign='center';ctx.fillText('F',tx,t.y-2);}
+    }
+    // Player
+    ctx.fillStyle='#06d6a0';
+    ctx.beginPath();ctx.moveTo(px+20,py);ctx.lineTo(px,py+12);ctx.lineTo(px+15,py+12);ctx.fill();
+    ctx.fillStyle='#00e5ff';ctx.fillRect(px-4,py+4,6,4);// thrust
+    // Bullets
+    ctx.fillStyle='#fff';
+    for(const b of bullets)ctx.fillRect(b.x-sx,b.y,6,2);
+    // Bombs
+    ctx.fillStyle='#ff8a47';
+    for(const b of bombs){ctx.beginPath();ctx.arc(b.x-sx,b.y,3,0,Math.PI*2);ctx.fill();}
+    // Rockets
+    ctx.fillStyle='#ff6b9d';
+    for(const r of rockets){
+        const rx=r.x-sx;
+        ctx.fillRect(rx-2,r.y,4,10);
+    }
+}
+
+function loop(){
+    if(state!=='playing')return;
+    update();draw();raf=requestAnimationFrame(loop);
+}
+
+function endGame(){
+    state='over';if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oScore.style.display='block';oScore.textContent='Score: '+score;
+    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');
+}
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowUp'||e.key==='w')keys.up=true;
+    if(e.key==='ArrowDown'||e.key==='s')keys.down=true;
+    if(e.key===' '){e.preventDefault();fire();}
+    if(e.key==='b'||e.key==='Enter')dropBomb();
+});
+document.addEventListener('keyup',e=>{
+    if(e.key==='ArrowUp'||e.key==='w')keys.up=false;
+    if(e.key==='ArrowDown'||e.key==='s')keys.down=false;
+});
+document.querySelectorAll('[data-act]').forEach(btn=>{
+    const act=btn.dataset.act;
+    if(act==='fire'){
+        btn.addEventListener('touchstart',e=>{e.preventDefault();fire();},{passive:false});
+        btn.addEventListener('click',fire);
+    }else if(act==='bomb'){
+        btn.addEventListener('touchstart',e=>{e.preventDefault();dropBomb();},{passive:false});
+        btn.addEventListener('click',dropBomb);
+    }else{
+        const on=()=>keys[act]=true,off=()=>keys[act]=false;
+        btn.addEventListener('touchstart',e=>{e.preventDefault();on();},{passive:false});
+        btn.addEventListener('touchend',off);btn.addEventListener('touchcancel',off);
+        btn.addEventListener('mousedown',on);btn.addEventListener('mouseup',off);btn.addEventListener('mouseleave',off);
+    }
+});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

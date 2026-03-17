@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>⚾ Baseball — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--yellow);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--yellow));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px;color:var(--green)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border)}
+canvas{display:block;width:100%;height:auto;background:#1a3a1a}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{display:none}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final{color:var(--green);font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--yellow));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.swing-btn{display:block;margin:12px auto 0;background:linear-gradient(135deg,var(--orange),var(--pink));color:#fff;border:none;padding:16px 60px;border-radius:14px;font-size:1.2rem;font-weight:800;cursor:pointer}
+.swing-btn:active{transform:scale(.95)}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">⚾ Baseball</span></div>
+<header><h1>Baseball</h1><p>Time your swing to hit home runs!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Runs</div><div class="value" id="hRuns">0</div></div>
+        <div class="hud-box"><div class="label">Outs</div><div class="value" id="hOuts" style="color:var(--pink)">0</div></div>
+        <div class="hud-box"><div class="label">Inning</div><div class="value" id="hInn">1</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gc" width="380" height="400"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>⚾ Baseball</h2>
+            <div class="sub">Watch the pitch and tap SWING at the right moment! 9 innings, 3 outs each.</div>
+            <div class="final" id="oFinal" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play Ball!</button>
+        </div>
+    </div>
+    <button class="swing-btn" id="swingBtn" style="display:none">⚾ SWING!</button>
+</div>
+<div class="game-footer">Baseball &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_baseball',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gc'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oFinal=document.getElementById('oFinal');
+const hRuns=document.getElementById('hRuns'),hOuts=document.getElementById('hOuts'),hInn=document.getElementById('hInn'),hBest=document.getElementById('hBest');
+const swingBtn=document.getElementById('swingBtn');
+const BEST_KEY='baseball_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+const PLATE_X=W/2,PLATE_Y=H-80;
+let ball,runs,outs,inning,state,pitchState,swung,result,resultTimer,msg;
+
+function start(){
+    runs=0;outs=0;inning=1;state='playing';
+    hRuns.textContent=0;hOuts.textContent=0;hInn.textContent=1;
+    swingBtn.style.display='block';
+    overlay.style.display='';overlay.classList.add('hidden');oFinal.style.display='none';
+    newPitch();
+    raf();
+}
+
+function newPitch(){
+    const speed=2+inning*0.3+Math.random();
+    const curveX=(Math.random()-0.5)*1.5;
+    ball={x:W/2+(Math.random()-0.5)*40,y:50,speed,curveX,r:8};
+    pitchState='pitching';swung=false;result='';resultTimer=0;msg='';
+}
+
+function raf(){
+    if(state!=='playing'){draw();return;}
+    update();draw();requestAnimationFrame(raf);
+}
+
+function update(){
+    if(pitchState==='pitching'){
+        ball.y+=ball.speed;
+        ball.x+=ball.curveX;
+        ball.r=8+((ball.y-50)/(PLATE_Y-50))*6;
+        
+        if(ball.y>=PLATE_Y+30&&!swung){
+            // Check if in strike zone
+            const inZone=Math.abs(ball.x-PLATE_X)<35;
+            if(inZone){
+                result='STRIKE';msg='Strike!';
+            }else{
+                result='BALL';msg='Ball (free pass)';
+            }
+            pitchState='result';resultTimer=60;
+        }
+    }
+    
+    if(pitchState==='result'){
+        resultTimer--;
+        if(resultTimer<=0){
+            if(result==='STRIKE'||result==='OUT'||result==='FLY_OUT'){
+                outs++;hOuts.textContent=outs;
+                if(outs>=3){
+                    outs=0;inning++;hOuts.textContent=0;hInn.textContent=inning;
+                    if(inning>9){endGame();return;}
+                }
+            }
+            newPitch();
+        }
+    }
+}
+
+function doSwing(){
+    if(state!=='playing'||pitchState!=='pitching'||swung)return;
+    swung=true;
+    
+    const dist=Math.sqrt((ball.x-PLATE_X)**2+(ball.y-PLATE_Y)**2);
+    const timing=Math.abs(ball.y-PLATE_Y);
+    const accuracy=Math.abs(ball.x-PLATE_X);
+    
+    if(timing<15&&accuracy<40){
+        // Great hit!
+        const power=Math.random();
+        if(power>0.7){result='HOME RUN';msg='HOME RUN! +4';runs+=4;}
+        else if(power>0.4){result='TRIPLE';msg='Triple! +3';runs+=3;}
+        else if(power>0.15){result='DOUBLE';msg='Double! +2';runs+=2;}
+        else{result='SINGLE';msg='Single! +1';runs+=1;}
+        hRuns.textContent=runs;
+    }else if(timing<30&&accuracy<50){
+        if(Math.random()<0.5){result='FLY_OUT';msg='Fly Out!';}
+        else{result='SINGLE';msg='Single! +1';runs+=1;hRuns.textContent=runs;}
+    }else{
+        result='OUT';msg='Swing & Miss!';
+    }
+    pitchState='result';resultTimer=80;
+}
+
+function draw(){
+    // Field
+    ctx.fillStyle='#1a5a1a';ctx.fillRect(0,0,W,H);
+    // Diamond
+    ctx.fillStyle='#c8a060';
+    ctx.beginPath();ctx.moveTo(PLATE_X,PLATE_Y);ctx.lineTo(PLATE_X-80,PLATE_Y-120);
+    ctx.lineTo(PLATE_X,PLATE_Y-200);ctx.lineTo(PLATE_X+80,PLATE_Y-120);ctx.closePath();ctx.fill();
+    // Grass infield
+    ctx.fillStyle='#2a7a2a';
+    ctx.beginPath();ctx.arc(PLATE_X,PLATE_Y-120,60,0,Math.PI*2);ctx.fill();
+    // Mound
+    ctx.fillStyle='#c8a060';ctx.beginPath();ctx.arc(PLATE_X,PLATE_Y-140,12,0,Math.PI*2);ctx.fill();
+    // Plate
+    ctx.fillStyle='#fff';ctx.fillRect(PLATE_X-15,PLATE_Y-3,30,6);
+    // Strike zone
+    ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;
+    ctx.strokeRect(PLATE_X-35,PLATE_Y-30,70,60);
+    
+    // Ball
+    if(pitchState==='pitching'){
+        ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#c00';ctx.lineWidth=1;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r-2,0.3,2.8);ctx.stroke();
+    }
+    
+    // Batter
+    ctx.fillStyle='#00e5ff';
+    ctx.fillRect(PLATE_X+20,PLATE_Y-35,8,35);
+    // Bat
+    ctx.strokeStyle='#c8a060';ctx.lineWidth=4;
+    ctx.beginPath();ctx.moveTo(PLATE_X+24,PLATE_Y-25);
+    if(swung){ctx.lineTo(PLATE_X-15,PLATE_Y-30);}
+    else{ctx.lineTo(PLATE_X+50,PLATE_Y-45);}
+    ctx.stroke();
+    
+    // Result text
+    if(pitchState==='result'&&msg){
+        ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(W/2-100,H/2-30,200,50);
+        ctx.fillStyle=result.includes('RUN')||result.includes('SINGLE')||result.includes('DOUBLE')||result.includes('TRIPLE')?'#ffd166':'#ff6b6b';
+        ctx.font='bold 22px sans-serif';ctx.textAlign='center';ctx.fillText(msg,W/2,H/2+2);
+    }
+    
+    // Score
+    ctx.fillStyle='#fff';ctx.font='bold 14px sans-serif';ctx.textAlign='left';
+    ctx.fillText('Inning '+inning+'/9  Outs: '+outs+'/3  Runs: '+runs,10,20);
+}
+
+function endGame(){
+    state='over';swingBtn.style.display='none';
+    if(runs>best){best=runs;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oFinal.style.display='block';oFinal.textContent='Final Score: '+runs+' runs!';
+    document.getElementById('startBtn').textContent='Play Again';
+    overlay.style.display='';overlay.classList.remove('hidden');
+}
+
+swingBtn.addEventListener('click',doSwing);
+document.addEventListener('keydown',e=>{if(e.key===' ')doSwing();});
+
+document.getElementById('startBtn').addEventListener('click',start);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>⚪ Reversi — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--purple);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--blue));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.p-val{color:var(--cyan)}.a-val{color:var(--pink)}.w-val{color:var(--green)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0618}
+canvas{display:block;width:100%;height:auto;cursor:pointer}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--cyan));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">⚪ Reversi</span></div>
+<header><h1>Reversi</h1><p>Flip opponent discs to dominate the board!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">You (Blue)</div><div class="value p-val" id="hYou">2</div></div>
+        <div class="hud-box"><div class="label">Wins</div><div class="value w-val" id="hWins">0</div></div>
+        <div class="hud-box"><div class="label">AI (Pink)</div><div class="value a-val" id="hAi">2</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Reversi</h2>
+            <div class="sub" id="oSub">Place discs to flip opponent pieces.<br>Most discs wins!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Reversi &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_reversi',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,SZ=W/8;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hYou=document.getElementById('hYou'),hWins=document.getElementById('hWins'),hAi=document.getElementById('hAi');
+const WINS_KEY='reversi_wins';
+let wins=+localStorage.getItem(WINS_KEY)||0;hWins.textContent=wins;
+let board,state='idle',turn; // 1=player(blue), 2=AI(pink)
+const DIRS=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+
+function startGame(){
+    board=Array.from({length:8},()=>Array(8).fill(0));
+    board[3][3]=2;board[3][4]=1;board[4][3]=1;board[4][4]=2;
+    turn=1;state='running';overlay.classList.add('hidden');updateHUD();draw();
+}
+
+function updateHUD(){
+    let p=0,a=0;
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){if(board[r][c]===1)p++;if(board[r][c]===2)a++;}
+    hYou.textContent=p;hAi.textContent=a;
+}
+
+function getFlips(r,c,player){
+    if(board[r][c]!==0)return[];
+    const opp=player===1?2:1;const allFlips=[];
+    DIRS.forEach(([dr,dc])=>{
+        let nr=r+dr,nc=c+dc;const flips=[];
+        while(nr>=0&&nr<8&&nc>=0&&nc<8&&board[nr][nc]===opp){flips.push({r:nr,c:nc});nr+=dr;nc+=dc;}
+        if(flips.length&&nr>=0&&nr<8&&nc>=0&&nc<8&&board[nr][nc]===player)allFlips.push(...flips);
+    });
+    return allFlips;
+}
+
+function getValidMoves(player){
+    const moves=[];
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){const f=getFlips(r,c,player);if(f.length)moves.push({r,c,flips:f});}
+    return moves;
+}
+
+function place(r,c,player){
+    const flips=getFlips(r,c,player);
+    board[r][c]=player;flips.forEach(f=>board[f.r][f.c]=player);
+    updateHUD();
+}
+
+function checkEnd(){
+    const pm=getValidMoves(1),am=getValidMoves(2);
+    if(pm.length||am.length)return false;
+    let p=0,a=0;
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){if(board[r][c]===1)p++;if(board[r][c]===2)a++;}
+    state='done';
+    if(p>a){oTitle.textContent='You Win!';wins++;localStorage.setItem(WINS_KEY,wins);hWins.textContent=wins;}
+    else if(a>p)oTitle.textContent='You Lose';
+    else oTitle.textContent='Draw!';
+    oSub.textContent='';oScore.textContent=p+' - '+a;oScore.style.display='block';overlay.classList.remove('hidden');
+    return true;
+}
+
+function aiTurn(){
+    setTimeout(()=>{
+        const moves=getValidMoves(2);
+        if(!moves.length){turn=1;if(!getValidMoves(1).length)checkEnd();draw();return;}
+        // Simple AI: prefer corners, edges, then most flips
+        const corners=[{r:0,c:0},{r:0,c:7},{r:7,c:0},{r:7,c:7}];
+        let best=null;
+        for(const co of corners){const m=moves.find(m=>m.r===co.r&&m.c===co.c);if(m){best=m;break;}}
+        if(!best){
+            moves.sort((a,b)=>b.flips.length-a.flips.length);
+            // Avoid cells adjacent to corners
+            const bad=new Set(['0,1','1,0','1,1','0,6','1,7','1,6','6,0','7,1','6,1','6,7','7,6','6,6']);
+            const safe=moves.filter(m=>!bad.has(m.r+','+m.c));
+            best=(safe.length?safe:moves)[0];
+        }
+        place(best.r,best.c,2);draw();
+        if(!checkEnd()){turn=1;if(!getValidMoves(1).length){turn=2;aiTurn();}}
+    },300);
+}
+
+function draw(){
+    ctx.fillStyle='#0a4420';ctx.fillRect(0,0,W,W);
+    const valid=state==='running'&&turn===1?getValidMoves(1):[];
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+            const x=c*SZ,y=r*SZ;
+            ctx.strokeStyle='#0a3018';ctx.lineWidth=1;ctx.strokeRect(x,y,SZ,SZ);
+            if(valid.some(m=>m.r===r&&m.c===c)){
+                ctx.fillStyle='rgba(0,229,255,0.15)';ctx.fillRect(x+1,y+1,SZ-2,SZ-2);
+                ctx.fillStyle='rgba(0,229,255,0.4)';ctx.beginPath();ctx.arc(x+SZ/2,y+SZ/2,5,0,Math.PI*2);ctx.fill();
+            }
+            if(board[r][c]){
+                const cx=x+SZ/2,cy=y+SZ/2;
+                ctx.beginPath();ctx.arc(cx,cy,SZ*0.4,0,Math.PI*2);
+                ctx.fillStyle=board[r][c]===1?'#00e5ff':'#ff6b9d';ctx.fill();
+                ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=2;ctx.stroke();
+                ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(cx-SZ*0.12,cy-SZ*0.12,SZ*0.12,0,Math.PI*2);ctx.fill();
+            }
+        }
+    }
+}
+
+function handleClick(clientX,clientY){
+    if(state!=='running'||turn!==1)return;
+    const rect=canvas.getBoundingClientRect();
+    const c=Math.floor((clientX-rect.left)/rect.width*8);
+    const r=Math.floor((clientY-rect.top)/rect.height*8);
+    if(c<0||c>7||r<0||r>7)return;
+    const flips=getFlips(r,c,1);
+    if(!flips.length)return;
+    place(r,c,1);draw();
+    if(!checkEnd()){turn=2;aiTurn();}
+}
+
+canvas.addEventListener('click',e=>handleClick(e.clientX,e.clientY));
+canvas.addEventListener('touchstart',e=>{e.preventDefault();handleClick(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+document.getElementById('startBtn').addEventListener('click',startGame);
+draw();
+})();
+</script>
+</body>
+</html>

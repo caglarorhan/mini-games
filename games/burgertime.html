@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🍔 Burger Time — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--orange);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--yellow);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--orange),var(--yellow));color:#000;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--orange),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--orange)}.l-val{color:var(--pink)}.h-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--orange);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--orange),var(--yellow));color:#000;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.controls{display:none;justify-content:center;gap:10px;margin-top:12px}
+@media(max-width:768px){.controls{display:flex}}
+.ctrl-btn{width:56px;height:56px;border:none;border-radius:14px;font-size:1.3rem;font-weight:700;cursor:pointer;background:var(--bg-card);color:var(--text-light);border:1px solid var(--border)}
+.d-pad{display:grid;grid-template-columns:56px 56px 56px;grid-template-rows:56px 56px;gap:4px;justify-content:center;margin-top:12px}
+.d-pad .ctrl-btn:nth-child(1){grid-column:2}
+.d-pad .ctrl-btn:nth-child(2){grid-column:1;grid-row:2}
+.d-pad .ctrl-btn:nth-child(3){grid-column:3;grid-row:2}
+.d-pad .ctrl-btn:nth-child(4){grid-column:2;grid-row:2}
+@media(max-width:768px){.d-pad{display:grid}}
+@media(min-width:769px){.d-pad{display:none}}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🍔 Burger Time</span></div>
+<header><h1>Burger Time</h1><p>Walk over ingredients to drop them!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Level</div><div class="value l-val" id="hLevel">1</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value h-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🍔 Burger Time</h2>
+            <div class="sub">Walk across bun, lettuce, patty & tomato to drop them. Avoid enemies!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+    <div class="d-pad">
+        <button class="ctrl-btn" data-dir="up">▲</button>
+        <button class="ctrl-btn" data-dir="left">◄</button>
+        <button class="ctrl-btn" data-dir="right">►</button>
+        <button class="ctrl-btn" data-dir="down">▼</button>
+    </div>
+</div>
+<div class="game-footer">Burger Time &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_burgertime',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=400,H=400;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hLevel=document.getElementById('hLevel'),hBest=document.getElementById('hBest');
+const BEST_KEY='burgertime_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+const TILE=25;const COLS=16,ROWS=16;
+// Platform layout: rows where platforms exist
+const PLAT_ROWS=[3,6,9,12,15];
+const LADDER_COLS=[2,5,8,11,14];
+
+let player,enemies,ingredients,score,level,lives,state,raf;
+let keys={};
+
+class Ingredient{
+    constructor(col,platRow,type,color){
+        this.col=col;this.platRow=platRow;this.type=type;this.color=color;
+        this.y=platRow*TILE;this.x=col*TILE;
+        this.walked=new Set();this.dropped=false;this.dropTarget=0;this.dropping=false;
+    }
+    get width(){return 4;}
+}
+
+function buildIngredients(){
+    ingredients=[];
+    const stacks=[[1,5,9,13],[3,7,11]];
+    const types=[['#d4a017','bun-top'],['#06d6a0','lettuce'],['#8B4513','patty'],['#ff4444','tomato'],['#d4a017','bun-bottom']];
+    for(let s=0;s<3;s++){
+        for(let p=0;p<PLAT_ROWS.length;p++){
+            const col=1+s*5;
+            const ing=new Ingredient(col,PLAT_ROWS[p],types[p][1],types[p][0]);
+            ingredients.push(ing);
+        }
+    }
+}
+
+function startGame(){
+    score=0;level=1;lives=3;state='playing';
+    player={x:8*TILE,y:PLAT_ROWS[4]*TILE-TILE,dir:'right',onLadder:false};
+    enemies=[{x:2*TILE,y:PLAT_ROWS[1]*TILE-TILE,dir:1,speed:1},{x:12*TILE,y:PLAT_ROWS[2]*TILE-TILE,dir:-1,speed:1}];
+    buildIngredients();
+    hScore.textContent=0;hLevel.textContent=1;
+    overlay.classList.add('hidden');oScore.style.display='none';
+    if(raf)cancelAnimationFrame(raf);
+    loop();
+}
+
+function isOnPlatform(x,y){
+    const row=Math.round((y+TILE)/TILE);
+    return PLAT_ROWS.includes(row);
+}
+
+function isOnLadder(x,y){
+    const col=Math.round(x/TILE);
+    return LADDER_COLS.includes(col);
+}
+
+function movePlayer(){
+    const spd=2;
+    if(keys.left)player.x-=spd;
+    if(keys.right)player.x+=spd;
+    if(keys.up&&isOnLadder(player.x,player.y))player.y-=spd;
+    if(keys.down&&isOnLadder(player.x,player.y+TILE))player.y+=spd;
+    player.x=Math.max(0,Math.min(player.x,(COLS-1)*TILE));
+    player.y=Math.max(PLAT_ROWS[0]*TILE-TILE,Math.min(player.y,PLAT_ROWS[4]*TILE-TILE));
+    // Snap to platform when not on ladder
+    if(!isOnLadder(player.x,player.y)){
+        let closest=PLAT_ROWS[4]*TILE-TILE;
+        for(const pr of PLAT_ROWS){
+            const py=pr*TILE-TILE;
+            if(Math.abs(player.y-py)<TILE)closest=py;
+        }
+        player.y=closest;
+    }
+    // Check ingredient walking
+    const pCol=Math.round(player.x/TILE);
+    for(const ing of ingredients){
+        if(ing.dropped)continue;
+        const ingRow=Math.round(ing.y/TILE);
+        const playerRow=Math.round((player.y+TILE)/TILE);
+        if(playerRow===ingRow&&pCol>=ing.col&&pCol<ing.col+ing.width){
+            ing.walked.add(pCol-ing.col);
+            if(ing.walked.size>=ing.width){
+                ing.dropping=true;
+                ing.dropTarget=ing.y+PLAT_ROWS[1]*TILE*0.5;
+                const nextPR=PLAT_ROWS.findIndex(r=>r*TILE>ing.y);
+                if(nextPR>=0)ing.dropTarget=PLAT_ROWS[nextPR]*TILE;
+                else{ing.dropped=true;score+=100;}
+                score+=50;
+            }
+        }
+    }
+}
+
+function moveEnemies(){
+    for(const e of enemies){
+        e.x+=e.dir*e.speed;
+        if(e.x<TILE||e.x>(COLS-2)*TILE)e.dir*=-1;
+        // Check collision with player
+        if(Math.abs(e.x-player.x)<TILE*0.8&&Math.abs(e.y-player.y)<TILE*0.8){
+            lives--;
+            if(lives<=0){endGame();return;}
+            player.x=8*TILE;player.y=PLAT_ROWS[4]*TILE-TILE;
+        }
+    }
+}
+
+function updateIngredients(){
+    for(const ing of ingredients){
+        if(ing.dropping&&!ing.dropped){
+            ing.y+=3;
+            if(ing.y>=ing.dropTarget){ing.y=ing.dropTarget;ing.dropping=false;ing.dropped=true;score+=100;}
+        }
+    }
+    // Check level complete
+    if(ingredients.every(i=>i.dropped)){
+        level++;hLevel.textContent=level;
+        buildIngredients();
+        enemies.push({x:7*TILE,y:PLAT_ROWS[Math.floor(Math.random()*3)]*TILE-TILE,dir:1,speed:1+level*0.2});
+    }
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Platforms
+    ctx.fillStyle='#2a1f4e';
+    for(const pr of PLAT_ROWS)ctx.fillRect(0,pr*TILE,W,3);
+    // Ladders
+    ctx.strokeStyle='#4a3f6e';ctx.lineWidth=2;
+    for(const lc of LADDER_COLS){
+        const x=lc*TILE+TILE/2;
+        for(let i=0;i<PLAT_ROWS.length-1;i++){
+            const y1=PLAT_ROWS[i]*TILE,y2=PLAT_ROWS[i+1]*TILE;
+            ctx.beginPath();ctx.moveTo(x-6,y1);ctx.lineTo(x-6,y2);ctx.stroke();
+            ctx.beginPath();ctx.moveTo(x+6,y1);ctx.lineTo(x+6,y2);ctx.stroke();
+            for(let ry=y1;ry<y2;ry+=10){ctx.beginPath();ctx.moveTo(x-6,ry);ctx.lineTo(x+6,ry);ctx.stroke();}
+        }
+    }
+    // Ingredients
+    for(const ing of ingredients){
+        ctx.fillStyle=ing.color;
+        const h=6;
+        for(let i=0;i<ing.width;i++){
+            const alpha=ing.walked.has(i)?0.3:1;
+            ctx.globalAlpha=alpha;
+            ctx.fillRect(ing.x+i*TILE+2,ing.y-h,TILE-4,h);
+        }
+        ctx.globalAlpha=1;
+    }
+    // Player (chef)
+    ctx.fillStyle='#fff';ctx.fillRect(player.x,player.y,TILE-2,TILE-2);
+    ctx.fillStyle='#ff8a47';ctx.fillRect(player.x+2,player.y-4,TILE-6,4);// hat
+    // Enemies
+    ctx.fillStyle='#ff6b9d';
+    for(const e of enemies){
+        ctx.beginPath();ctx.arc(e.x+TILE/2,e.y+TILE/2,TILE*0.4,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#fff';ctx.fillRect(e.x+4,e.y+5,4,4);ctx.fillRect(e.x+12,e.y+5,4,4);
+        ctx.fillStyle='#ff6b9d';
+    }
+    // Lives
+    for(let i=0;i<lives;i++){
+        ctx.fillStyle='#ff8a47';ctx.fillRect(8+i*18,8,12,12);
+    }
+    hScore.textContent=score;
+}
+
+function loop(){
+    if(state!=='playing')return;
+    movePlayer();moveEnemies();updateIngredients();draw();
+    raf=requestAnimationFrame(loop);
+}
+
+function endGame(){
+    state='over';if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oScore.style.display='block';oScore.textContent='Score: '+score;
+    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');
+}
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a')keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d')keys.right=true;
+    if(e.key==='ArrowUp'||e.key==='w')keys.up=true;
+    if(e.key==='ArrowDown'||e.key==='s')keys.down=true;
+});
+document.addEventListener('keyup',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a')keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d')keys.right=false;
+    if(e.key==='ArrowUp'||e.key==='w')keys.up=false;
+    if(e.key==='ArrowDown'||e.key==='s')keys.down=false;
+});
+document.querySelectorAll('[data-dir]').forEach(btn=>{
+    const d=btn.dataset.dir;
+    const on=()=>keys[d]=true,off=()=>keys[d]=false;
+    btn.addEventListener('touchstart',e=>{e.preventDefault();on();},{passive:false});
+    btn.addEventListener('touchend',off);btn.addEventListener('touchcancel',off);
+    btn.addEventListener('mousedown',on);btn.addEventListener('mouseup',off);btn.addEventListener('mouseleave',off);
+});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

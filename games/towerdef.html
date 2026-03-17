@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🏰 Tower Defense — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--orange);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--blue);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--orange),var(--blue));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--orange),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:440px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:6px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:6px 10px;text-align:center;flex:1}
+.hud-box .label{font-size:.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1rem;font-weight:800;margin-top:1px}
+.s-val{color:var(--orange)}.hi-val{color:var(--yellow)}.g-val{color:var(--green)}.h-val{color:var(--pink)}.w-val{color:var(--cyan)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.tower-btns{display:flex;justify-content:center;gap:8px;margin-top:8px}
+.tower-btn{padding:8px 14px;border-radius:10px;border:2px solid var(--border);background:var(--bg-card);color:var(--text-light);font-size:.8rem;font-weight:600;cursor:pointer;text-align:center}
+.tower-btn:hover,.tower-btn.active{border-color:var(--cyan);background:rgba(0,229,255,.1)}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--orange),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--orange);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--orange),var(--blue));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🏰 Tower Defense</span></div>
+<header><h1>Tower Defense</h1><p>Place towers to stop the enemies!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Wave</div><div class="value w-val" id="hWave">1</div></div>
+        <div class="hud-box"><div class="label">Gold</div><div class="value g-val" id="hGold">100</div></div>
+        <div class="hud-box"><div class="label">Lives</div><div class="value h-val" id="hLives">10</div></div>
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="420" height="360"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Tower Defense</h2>
+            <div class="sub" id="oSub">Place towers along the path to defend!<br>Click a tile to build. Enemies follow the road.</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Defend!</button>
+        </div>
+    </div>
+    <div class="tower-btns">
+        <div class="tower-btn active" data-type="0">🏹 Arrow<br><small>20g</small></div>
+        <div class="tower-btn" data-type="1">🔥 Fire<br><small>35g</small></div>
+        <div class="tower-btn" data-type="2">❄️ Ice<br><small>30g</small></div>
+    </div>
+</div>
+<div class="game-footer">Tower Defense &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_towerdef',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hWave=document.getElementById('hWave'),hGold=document.getElementById('hGold'),hLives=document.getElementById('hLives'),hScore=document.getElementById('hScore');
+const BEST_KEY='towerdef_best';
+
+const CELL=30,COLS=14,ROWS=12;
+// Path waypoints (cell coords)
+const PATH=[[0,5],[1,5],[2,5],[3,5],[3,4],[3,3],[3,2],[4,2],[5,2],[6,2],[6,3],[6,4],[6,5],[6,6],[6,7],[7,7],[8,7],[9,7],[9,6],[9,5],[9,4],[9,3],[10,3],[11,3],[12,3],[12,4],[12,5],[12,6],[12,7],[12,8],[13,8]];
+
+const TOWER_INFO=[
+    {name:'Arrow',cost:20,range:90,rate:30,dmg:10,color:'#ffd166'},
+    {name:'Fire',cost:35,range:70,rate:45,dmg:25,color:'#ff8a47'},
+    {name:'Ice',cost:30,range:80,rate:40,dmg:8,color:'#00e5ff',slow:true}
+];
+
+let state='idle',score,gold,lives,wave,enemies,towers,bullets,spawnTimer,spawnCount,selectedType,af;
+
+const pathSet=new Set(PATH.map(p=>p[0]+','+p[1]));
+
+function startGame(){
+    score=0;gold=100;lives=10;wave=0;
+    enemies=[];towers=[];bullets=[];selectedType=0;
+    hScore.textContent=0;hGold.textContent=100;hLives.textContent=10;
+    state='running';overlay.classList.add('hidden');
+    nextWave();
+    if(af)cancelAnimationFrame(af);af=requestAnimationFrame(loop);
+}
+
+function nextWave(){
+    wave++;hWave.textContent=wave;
+    spawnTimer=0;spawnCount=0;
+}
+
+function loop(){if(state!=='running')return;update();draw();af=requestAnimationFrame(loop);}
+
+function update(){
+    // Spawn enemies
+    const maxEnemies=5+wave*2;
+    spawnTimer++;
+    if(spawnTimer>=40&&spawnCount<maxEnemies){
+        spawnTimer=0;spawnCount++;
+        const hp=20+wave*10;
+        enemies.push({pathIdx:0,t:0,hp,maxHp:hp,speed:0.02+wave*0.002,slow:0,x:0,y:0});
+    }
+    // Move enemies
+    enemies.forEach(e=>{
+        if(e.pathIdx>=PATH.length-1)return;
+        const spd=e.slow>0?e.speed*0.5:e.speed;
+        e.t+=spd;
+        if(e.slow>0)e.slow--;
+        if(e.t>=1){e.t=0;e.pathIdx++;}
+        if(e.pathIdx<PATH.length-1){
+            const a=PATH[e.pathIdx],b=PATH[e.pathIdx+1];
+            e.x=(a[0]*(1-e.t)+b[0]*e.t)*CELL+CELL/2;
+            e.y=(a[1]*(1-e.t)+b[1]*e.t)*CELL+CELL/2;
+        }
+    });
+    // Remove enemies that reached end
+    enemies=enemies.filter(e=>{
+        if(e.pathIdx>=PATH.length-1){
+            lives--;hLives.textContent=lives;
+            if(lives<=0){endGame();return false;}
+            return false;
+        }
+        return true;
+    });
+    // Towers shoot
+    towers.forEach(t=>{
+        t.cd--;
+        if(t.cd>0)return;
+        const info=TOWER_INFO[t.type];
+        let target=null,minD=Infinity;
+        enemies.forEach(e=>{
+            if(e.hp<=0)return;
+            const d=Math.sqrt((e.x-t.x)**2+(e.y-t.y)**2);
+            if(d<info.range&&d<minD){minD=d;target=e;}
+        });
+        if(target){
+            t.cd=info.rate;
+            bullets.push({x:t.x,y:t.y,tx:target.x,ty:target.y,target,type:t.type,speed:4});
+        }
+    });
+    // Bullets
+    bullets=bullets.filter(b=>{
+        const dx=b.tx-b.x,dy=b.ty-b.y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<b.speed){
+            // Hit
+            const info=TOWER_INFO[b.type];
+            b.target.hp-=info.dmg;
+            if(info.slow)b.target.slow=60;
+            if(b.target.hp<=0){score+=10;hScore.textContent=score;gold+=5+wave;hGold.textContent=gold;}
+            return false;
+        }
+        b.x+=dx/d*b.speed;b.y+=dy/d*b.speed;
+        return true;
+    });
+    enemies=enemies.filter(e=>e.hp>0);
+    // Wave complete check
+    if(spawnCount>=maxEnemies&&enemies.length===0){
+        gold+=20+wave*5;hGold.textContent=gold;
+        nextWave();
+    }
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Grid
+    for(let c=0;c<COLS;c++){
+        for(let r=0;r<ROWS;r++){
+            const isPth=pathSet.has(c+','+r);
+            ctx.fillStyle=isPth?'#2a2a3a':'#121225';
+            ctx.fillRect(c*CELL+0.5,r*CELL+0.5,CELL-1,CELL-1);
+        }
+    }
+    // Path direction indicators
+    ctx.fillStyle='rgba(255,255,255,0.05)';
+    PATH.forEach(([c,r])=>{ctx.fillRect(c*CELL+CELL/2-2,r*CELL+CELL/2-2,4,4);});
+    // Towers
+    towers.forEach(t=>{
+        const info=TOWER_INFO[t.type];
+        ctx.fillStyle=info.color;ctx.beginPath();ctx.arc(t.x,t.y,10,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle=info.color;ctx.globalAlpha=0.15;ctx.beginPath();ctx.arc(t.x,t.y,info.range,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+    });
+    // Enemies
+    enemies.forEach(e=>{
+        if(e.hp<=0)return;
+        ctx.fillStyle=e.slow>0?'#00e5ff':'#ff6b9d';
+        ctx.beginPath();ctx.arc(e.x,e.y,8,0,Math.PI*2);ctx.fill();
+        // HP bar
+        const bw=16,bh=3;
+        ctx.fillStyle='#333';ctx.fillRect(e.x-bw/2,e.y-13,bw,bh);
+        ctx.fillStyle='#06d6a0';ctx.fillRect(e.x-bw/2,e.y-13,bw*e.hp/e.maxHp,bh);
+    });
+    // Bullets
+    bullets.forEach(b=>{
+        ctx.fillStyle=TOWER_INFO[b.type].color;
+        ctx.beginPath();ctx.arc(b.x,b.y,3,0,Math.PI*2);ctx.fill();
+    });
+}
+
+function placeTower(mx,my){
+    const c=Math.floor(mx/CELL),r=Math.floor(my/CELL);
+    if(c<0||c>=COLS||r<0||r>=ROWS)return;
+    if(pathSet.has(c+','+r))return;
+    if(towers.some(t=>t.col===c&&t.row===r))return;
+    const info=TOWER_INFO[selectedType];
+    if(gold<info.cost)return;
+    gold-=info.cost;hGold.textContent=gold;
+    towers.push({col:c,row:r,x:c*CELL+CELL/2,y:r*CELL+CELL/2,type:selectedType,cd:0});
+}
+
+canvas.addEventListener('click',e=>{
+    if(state!=='running')return;
+    const rect=canvas.getBoundingClientRect();
+    placeTower((e.clientX-rect.left)/rect.width*W,(e.clientY-rect.top)/rect.height*H);
+});
+canvas.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(state!=='running'){startGame();return;}
+    const t=e.touches[0],rect=canvas.getBoundingClientRect();
+    placeTower((t.clientX-rect.left)/rect.width*W,(t.clientY-rect.top)/rect.height*H);
+},{passive:false});
+
+// Tower selection
+document.querySelectorAll('.tower-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        document.querySelectorAll('.tower-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');selectedType=+btn.dataset.type;
+    });
+});
+
+function endGame(){
+    state='dead';if(af)cancelAnimationFrame(af);
+    const best=+localStorage.getItem(BEST_KEY)||0;
+    if(score>best)localStorage.setItem(BEST_KEY,score);
+    oTitle.textContent='Base Destroyed!';oSub.textContent='Survived '+wave+' waves';oScore.textContent='Score: '+score;oScore.style.display='block';
+    overlay.classList.remove('hidden');document.getElementById('startBtn').textContent='Retry';
+}
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🔠 Hangman — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--pink);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--green);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--pink),var(--green));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:440px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--green)}.hi-val{color:var(--yellow)}.m-val{color:var(--pink)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:var(--bg-card);display:flex;align-items:center;justify-content:center;padding:20px}
+canvas{display:block}
+.word-display{text-align:center;margin:16px 0;font-size:1.8rem;font-weight:900;letter-spacing:8px;color:var(--text-light)}
+.hint-text{text-align:center;color:var(--text-muted);font-size:.85rem;margin-bottom:10px;min-height:1.2em}
+.keyboard{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin:10px auto;max-width:380px}
+.key{width:34px;height:38px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-light);font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.key:hover{background:rgba(0,229,255,.15)}
+.key.correct{background:rgba(6,214,160,.3);color:var(--green);border-color:var(--green)}
+.key.wrong{background:rgba(255,107,157,.15);color:var(--pink);border-color:var(--pink);opacity:.5}
+.key.disabled{pointer-events:none;opacity:.3}
+.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:50}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--pink),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--pink),var(--green));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🔠 Hangman</span></div>
+<header><h1>Hangman</h1><p>Guess the word before you run out of tries!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Wins</div><div class="value s-val" id="hWins">0</div></div>
+        <div class="hud-box"><div class="label">Misses</div><div class="value m-val" id="hMisses">0/6</div></div>
+        <div class="hud-box"><div class="label">Streak</div><div class="value hi-val" id="hStreak">0</div></div>
+    </div>
+    <div class="canvas-wrap"><canvas id="hangCanvas" width="180" height="180"></canvas></div>
+    <div class="hint-text" id="hintText"></div>
+    <div class="word-display" id="wordDisplay"></div>
+    <div class="keyboard" id="keyboard"></div>
+</div>
+<div class="overlay" id="overlay">
+    <h2 id="oTitle">Hangman</h2>
+    <div class="sub" id="oSub">Guess letters to reveal the word.<br>6 wrong guesses and it's over!</div>
+    <div class="final-score" id="oScore" style="display:none"></div>
+    <button class="start-btn" id="startBtn">Play!</button>
+</div>
+<div class="game-footer">Hangman &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_hangman',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const WORDS=[
+    {word:'ARCADE',hint:'A place with coin-operated games'},
+    {word:'GALAXY',hint:'A system of millions of stars'},
+    {word:'PYTHON',hint:'A popular programming language'},
+    {word:'JUNGLE',hint:'Dense tropical forest'},
+    {word:'ROCKET',hint:'Vehicle that flies into space'},
+    {word:'PUZZLE',hint:'A game that tests your brain'},
+    {word:'DRAGON',hint:'Mythical fire-breathing creature'},
+    {word:'CASTLE',hint:'A medieval fortified structure'},
+    {word:'KNIGHT',hint:'Armored warrior on horseback'},
+    {word:'PIRATE',hint:'Seafaring plunderer'},
+    {word:'ZOMBIE',hint:'Undead creature'},
+    {word:'WIZARD',hint:'A magical spellcaster'},
+    {word:'PLANET',hint:'A celestial body orbiting a star'},
+    {word:'GUITAR',hint:'A stringed musical instrument'},
+    {word:'MATRIX',hint:'A rectangular array of numbers'},
+    {word:'FREEZE',hint:'To become solid from cold'},
+    {word:'QUARTZ',hint:'A common mineral in rocks'},
+    {word:'OXYGEN',hint:'We breathe this gas'},
+    {word:'CIPHER',hint:'A secret code or message'},
+    {word:'BREEZE',hint:'A gentle wind'},
+    {word:'ANCHOR',hint:'Keeps a ship in place'},
+    {word:'TROPHY',hint:'An award for winning'},
+    {word:'ISLAND',hint:'Land surrounded by water'},
+    {word:'SUMMIT',hint:'The top of a mountain'},
+    {word:'VELVET',hint:'A soft luxurious fabric'},
+    {word:'BRONZE',hint:'An alloy of copper and tin'},
+    {word:'CACTUS',hint:'A spiny desert plant'},
+    {word:'RADIUS',hint:'Distance from center to edge'},
+    {word:'METEOR',hint:'A streak of light in the sky'},
+    {word:'TURBO',hint:'A device that boosts engine power'}
+];
+const MAX_WRONG=6;
+const canvas=document.getElementById('hangCanvas'),ctx=canvas.getContext('2d');
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hWins=document.getElementById('hWins'),hMisses=document.getElementById('hMisses'),hStreak=document.getElementById('hStreak');
+const wordDisplay=document.getElementById('wordDisplay'),hintText=document.getElementById('hintText'),keyboard=document.getElementById('keyboard');
+const WINS_KEY='hangman_wins';
+let totalWins=+localStorage.getItem(WINS_KEY)||0;hWins.textContent=totalWins;
+let word,hint,guessed,wrong,state,streak=0;
+
+function drawHangman(n){
+    ctx.clearRect(0,0,180,180);
+    ctx.strokeStyle='var(--text-muted)';ctx.lineWidth=2;ctx.lineCap='round';
+    // Base
+    ctx.beginPath();ctx.moveTo(20,170);ctx.lineTo(80,170);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(50,170);ctx.lineTo(50,20);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(50,20);ctx.lineTo(120,20);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(120,20);ctx.lineTo(120,40);ctx.stroke();
+    ctx.strokeStyle='#ff6b9d';ctx.lineWidth=3;
+    if(n>=1){ctx.beginPath();ctx.arc(120,55,15,0,Math.PI*2);ctx.stroke();}
+    if(n>=2){ctx.beginPath();ctx.moveTo(120,70);ctx.lineTo(120,115);ctx.stroke();}
+    if(n>=3){ctx.beginPath();ctx.moveTo(120,80);ctx.lineTo(100,100);ctx.stroke();}
+    if(n>=4){ctx.beginPath();ctx.moveTo(120,80);ctx.lineTo(140,100);ctx.stroke();}
+    if(n>=5){ctx.beginPath();ctx.moveTo(120,115);ctx.lineTo(100,145);ctx.stroke();}
+    if(n>=6){ctx.beginPath();ctx.moveTo(120,115);ctx.lineTo(140,145);ctx.stroke();}
+}
+
+function buildKeyboard(){
+    keyboard.innerHTML='';
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l=>{
+        const b=document.createElement('div');
+        b.className='key';b.textContent=l;b.dataset.letter=l;
+        b.addEventListener('click',()=>guess(l));
+        keyboard.appendChild(b);
+    });
+}
+
+function updateDisplay(){
+    wordDisplay.textContent=word.split('').map(c=>guessed.has(c)?c:'_').join(' ');
+}
+
+function startGame(){
+    const entry=WORDS[Math.floor(Math.random()*WORDS.length)];
+    word=entry.word;hint=entry.hint;
+    guessed=new Set();wrong=0;state='playing';
+    hMisses.textContent='0/'+MAX_WRONG;
+    hintText.textContent='Hint: '+hint;
+    buildKeyboard();drawHangman(0);updateDisplay();
+    overlay.classList.add('hidden');oScore.style.display='none';
+}
+
+function guess(letter){
+    if(state!=='playing'||guessed.has(letter))return;
+    guessed.add(letter);
+    const key=keyboard.querySelector(`[data-letter="${letter}"]`);
+    if(word.includes(letter)){
+        if(key)key.classList.add('correct');
+        updateDisplay();
+        if(word.split('').every(c=>guessed.has(c))){
+            state='won';streak++;hStreak.textContent=streak;
+            totalWins++;localStorage.setItem(WINS_KEY,totalWins);hWins.textContent=totalWins;
+            setTimeout(()=>{
+                oTitle.textContent='You Win!';oSub.textContent='The word was: '+word;oScore.textContent='Streak: '+streak;oScore.style.display='block';
+                overlay.classList.remove('hidden');document.getElementById('startBtn').textContent='Next Word';
+            },500);
+        }
+    } else {
+        wrong++;hMisses.textContent=wrong+'/'+MAX_WRONG;
+        if(key)key.classList.add('wrong');
+        drawHangman(wrong);
+        if(wrong>=MAX_WRONG){
+            state='lost';streak=0;hStreak.textContent=0;
+            wordDisplay.textContent=word.split('').join(' ');
+            setTimeout(()=>{
+                oTitle.textContent='Game Over';oSub.textContent='The word was: '+word;oScore.style.display='none';
+                overlay.classList.remove('hidden');document.getElementById('startBtn').textContent='Try Again';
+            },600);
+        }
+    }
+}
+
+// Physical keyboard
+document.addEventListener('keydown',e=>{
+    if(state!=='playing')return;
+    const l=e.key.toUpperCase();
+    if(l.length===1&&l>='A'&&l<='Z')guess(l);
+});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

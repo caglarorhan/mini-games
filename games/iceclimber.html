@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🧊 Ice Climber — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--cyan);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--blue);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px;color:var(--cyan)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border)}
+canvas{display:block;width:100%;height:auto;background:#0c1a3a}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{display:none}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final{color:var(--cyan);font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.ctrl{display:none;justify-content:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+@media(max-width:768px){.ctrl{display:flex}}
+.ctrl button{width:60px;height:52px;border-radius:12px;border:2px solid var(--border);background:var(--bg-card);color:var(--text-light);font-size:1.3rem;font-weight:700;cursor:pointer;-webkit-user-select:none}
+.ctrl button:active{background:var(--cyan);color:#000}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🧊 Ice Climber</span></div>
+<header><h1>Ice Climber</h1><p>Break ice & climb to the top!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Floor</div><div class="value" id="hFloor">1</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gc" width="380" height="520"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🧊 Ice Climber</h2>
+            <div class="sub">Break ice blocks by jumping into them from below. Climb higher!</div>
+            <div class="final" id="oFinal" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+    <div class="ctrl">
+        <button id="bL">◀</button>
+        <button id="bJ">▲</button>
+        <button id="bR">▶</button>
+    </div>
+</div>
+<div class="game-footer">Ice Climber &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_iceclimber',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gc'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oFinal=document.getElementById('oFinal');
+const hScore=document.getElementById('hScore'),hFloor=document.getElementById('hFloor'),hBest=document.getElementById('hBest');
+const BEST_KEY='iceclimber_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+const GRAVITY=0.35,JUMP_VEL=-8,SPEED=3.5;
+const PLAT_H=12,BLOCK_W=38,BLOCK_H=16;
+const PW=20,PH=24;
+
+let player,platforms,camera,score,floor,state,keys,enemies;
+
+function genPlatforms(startY,count){
+    const ps=[];
+    for(let i=0;i<count;i++){
+        const y=startY-i*65;
+        const numBlocks=Math.floor(Math.random()*3)+4;
+        const startX=Math.floor(Math.random()*(W-numBlocks*BLOCK_W));
+        const blocks=[];
+        for(let b=0;b<numBlocks;b++){
+            blocks.push({x:startX+b*BLOCK_W,w:BLOCK_W,broken:false});
+        }
+        ps.push({y,blocks,hasEnemy:Math.random()<0.3&&i>2});
+    }
+    return ps;
+}
+
+function start(){
+    player={x:W/2-PW/2,y:H-40,vx:0,vy:0,onGround:true};
+    platforms=[];
+    // Ground
+    platforms.push({y:H-10,blocks:[{x:0,w:W,broken:false}],hasEnemy:false,isGround:true});
+    platforms.push(...genPlatforms(H-70,40));
+    enemies=[];
+    platforms.forEach(p=>{
+        if(p.hasEnemy){
+            const bks=p.blocks.filter(b=>!b.broken);
+            if(bks.length>0){
+                const bk=bks[Math.floor(Math.random()*bks.length)];
+                enemies.push({x:bk.x+bk.w/2,y:p.y-16,dir:1,platY:p.y});
+            }
+        }
+    });
+    camera=0;score=0;floor=1;state='playing';keys={left:false,right:false,jump:false};
+    hScore.textContent=0;hFloor.textContent=1;
+    overlay.style.display='';overlay.classList.add('hidden');oFinal.style.display='none';
+    raf();
+}
+
+function raf(){
+    if(state!=='playing')return;
+    update();draw();requestAnimationFrame(raf);
+}
+
+function update(){
+    // Movement
+    if(keys.left)player.vx=-SPEED;
+    else if(keys.right)player.vx=SPEED;
+    else player.vx=0;
+    player.vy+=GRAVITY;
+    player.x+=player.vx;player.y+=player.vy;
+    // Wrap horizontal
+    if(player.x<-PW)player.x=W;if(player.x>W)player.x=-PW;
+    player.onGround=false;
+    // Platform collision — land on top or break from below
+    for(const p of platforms){
+        for(const b of p.blocks){
+            if(b.broken)continue;
+            const bx=b.x,by=p.y,bw=b.w;
+            // Landing on top
+            if(player.vy>=0&&player.y+PH>=by&&player.y+PH<=by+PLAT_H&&player.x+PW>bx&&player.x<bx+bw){
+                player.y=by-PH;player.vy=0;player.onGround=true;
+            }
+            // Breaking from below
+            if(player.vy<0&&player.y<=by+BLOCK_H&&player.y>=by&&player.x+PW>bx&&player.x<bx+bw&&!p.isGround){
+                b.broken=true;score+=10;
+                hScore.textContent=score;
+            }
+        }
+    }
+    // Jump
+    if(keys.jump&&player.onGround){player.vy=JUMP_VEL;player.onGround=false;keys.jump=false;}
+    // Camera scroll
+    const targetCam=Math.min(0,H/2-player.y);
+    camera+=(targetCam-camera)*0.1;
+    // Floor tracking
+    const highestY=player.y;
+    const newFloor=Math.max(floor,Math.floor((H-highestY)/65)+1);
+    if(newFloor>floor){floor=newFloor;hFloor.textContent=floor;}
+    // Enemies
+    enemies.forEach(e=>{
+        e.x+=e.dir*1.2;
+        if(e.x<20||e.x>W-20)e.dir*=-1;
+    });
+    // Collision with enemies
+    for(const e of enemies){
+        const ey=e.y+camera,py=player.y+camera;
+        if(Math.abs(player.x+PW/2-e.x)<18&&Math.abs(player.y+PH/2-e.y)<18){
+            if(player.vy>0&&player.y+PH<e.y+10){
+                e.y=-9999;score+=50;hScore.textContent=score;player.vy=JUMP_VEL*0.7;
+            }else{
+                endGame();return;
+            }
+        }
+    }
+    // Fall death
+    if(player.y-camera>H+100)endGame();
+}
+
+function draw(){
+    ctx.clearRect(0,0,W,H);
+    // BG gradient
+    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0a1a3a');g.addColorStop(1,'#1a0a2e');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    ctx.save();ctx.translate(0,camera);
+    // Platforms
+    for(const p of platforms){
+        for(const b of p.blocks){
+            if(b.broken)continue;
+            ctx.fillStyle=p.isGround?'#334':('#4af');
+            ctx.fillRect(b.x,p.y,b.w-1,BLOCK_H);
+            ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(b.x,p.y,b.w-1,3);
+        }
+    }
+    // Enemies
+    ctx.fillStyle='#ff6b6b';
+    enemies.forEach(e=>{
+        if(e.y<-999)return;
+        ctx.beginPath();ctx.arc(e.x,e.y,10,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#fff';ctx.fillRect(e.x-5,e.y-3,4,4);ctx.fillRect(e.x+1,e.y-3,4,4);
+        ctx.fillStyle='#ff6b6b';
+    });
+    // Player
+    ctx.fillStyle='#00e5ff';
+    ctx.fillRect(player.x,player.y,PW,PH);
+    // Parka hood
+    ctx.fillStyle='#ff8a47';
+    ctx.fillRect(player.x+2,player.y-4,PW-4,6);
+    ctx.restore();
+}
+
+function endGame(){
+    state='over';
+    if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oFinal.style.display='block';oFinal.textContent='Score: '+score+' | Floor: '+floor;
+    document.getElementById('startBtn').textContent='Play Again';
+    overlay.style.display='';overlay.classList.remove('hidden');
+}
+
+// Controls
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a')keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d')keys.right=true;
+    if(e.key==='ArrowUp'||e.key===' '||e.key==='w')keys.jump=true;
+});
+document.addEventListener('keyup',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a')keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d')keys.right=false;
+});
+const bL=document.getElementById('bL'),bR=document.getElementById('bR'),bJ=document.getElementById('bJ');
+bL.addEventListener('touchstart',e=>{e.preventDefault();keys.left=true});bL.addEventListener('touchend',()=>keys.left=false);
+bR.addEventListener('touchstart',e=>{e.preventDefault();keys.right=true});bR.addEventListener('touchend',()=>keys.right=false);
+bJ.addEventListener('touchstart',e=>{e.preventDefault();keys.jump=true});
+
+document.getElementById('startBtn').addEventListener('click',start);
+})();
+</script>
+</body>
+</html>

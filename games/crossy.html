@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🐔 Crossy Road — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--yellow);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--green);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--yellow),var(--green));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--yellow),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--yellow)}.hi-val{color:var(--green)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#1a4a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--yellow),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--yellow);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--yellow),var(--green));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.mobile-controls{display:none;justify-content:center;margin-top:10px;gap:4px}
+.ctrl-grid{display:flex;flex-direction:column;gap:4px;align-items:center}
+.ctrl-row{display:flex;gap:4px;justify-content:center}
+.ctrl-btn{width:56px;height:56px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-light);font-size:1.5rem;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ctrl-btn:active{background:var(--green)}
+@media(max-width:768px){.mobile-controls{display:flex}}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🐔 Crossy Road</span></div>
+<header><h1>Crossy Road</h1><p>Cross roads and rivers — don't get hit!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="400" height="480"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Crossy Road</h2>
+            <div class="sub" id="oSub">Hop forward to cross roads and rivers!<br>Use arrows, swipe, or buttons to move.</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+    <div class="mobile-controls">
+        <div class="ctrl-grid">
+            <div class="ctrl-row"><button class="ctrl-btn" data-dir="up">▲</button></div>
+            <div class="ctrl-row"><button class="ctrl-btn" data-dir="left">◄</button><button class="ctrl-btn" data-dir="down">▼</button><button class="ctrl-btn" data-dir="right">►</button></div>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Crossy Road &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_crossy',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest');
+const BEST_KEY='crossy_best';
+let bestScore=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=bestScore;
+const TILE=40;const COLS=W/TILE;
+let state='idle',player,lanes,score,maxRow,camY,animFrame;
+
+function makeLane(row){
+    const rnd=Math.random();
+    let type='grass';
+    if(row>2){
+        if(rnd<0.35)type='road';else if(rnd<0.55)type='river';else type='grass';
+    }
+    const lane={type,row,items:[]};
+    if(type==='road'){
+        const dir=Math.random()>0.5?1:-1;const speed=1+Math.random()*2;
+        const gap=80+Math.random()*60;
+        for(let x=-gap;x<W+gap;x+=gap){lane.items.push({x,w:30+Math.random()*20,dir,speed});}
+    }
+    if(type==='river'){
+        const dir=Math.random()>0.5?1:-1;const speed=0.8+Math.random()*1.5;
+        const gap=70+Math.random()*50;
+        for(let x=-gap;x<W+gap;x+=gap){lane.items.push({x,w:50+Math.random()*30,dir,speed});}
+    }
+    if(type==='grass'){
+        for(let c=0;c<COLS;c++){if(Math.random()<0.15)lane.items.push({x:c*TILE,w:TILE,tree:true});}
+    }
+    return lane;
+}
+
+function startGame(){
+    player={col:Math.floor(COLS/2),row:0,px:0,py:0};lanes=[];score=0;maxRow=0;camY=0;
+    for(let i=-2;i<16;i++)lanes.push(makeLane(i));
+    state='running';overlay.classList.add('hidden');hScore.textContent=0;
+    if(animFrame)cancelAnimationFrame(animFrame);animFrame=requestAnimationFrame(loop);
+}
+
+function getLane(row){return lanes.find(l=>l.row===row);}
+
+function move(dr,dc){
+    if(state!=='running')return;
+    const nr=player.row+dr,nc=player.col+dc;
+    if(nc<0||nc>=COLS)return;
+    const lane=getLane(nr);
+    if(lane&&lane.type==='grass'){
+        const blocked=lane.items.some(t=>t.tree&&Math.floor(t.x/TILE)===nc);
+        if(blocked)return;
+    }
+    player.row=nr;player.col=nc;
+    if(nr>maxRow){maxRow=nr;score=maxRow;hScore.textContent=score;}
+    // Generate new lanes
+    while(!getLane(player.row+10)){
+        const maxLane=Math.max(...lanes.map(l=>l.row));
+        lanes.push(makeLane(maxLane+1));
+    }
+    lanes=lanes.filter(l=>l.row>player.row-6);
+}
+
+function loop(){if(state!=='running')return;update();draw();animFrame=requestAnimationFrame(loop);}
+
+function update(){
+    // Camera
+    const targetCam=player.row*TILE-H/2+TILE;camY+=(targetCam-camY)*0.1;
+    // Move vehicles/logs
+    lanes.forEach(l=>{
+        if(l.type==='road'||l.type==='river'){
+            l.items.forEach(item=>{
+                item.x+=item.dir*item.speed;
+                if(item.dir>0&&item.x>W+50)item.x=-item.w-50;
+                if(item.dir<0&&item.x+item.w<-50)item.x=W+50;
+            });
+        }
+    });
+    // Player on river - ride log or drown
+    const pLane=getLane(player.row);
+    if(pLane&&pLane.type==='river'){
+        const px=player.col*TILE;
+        const onLog=pLane.items.some(log=>px+TILE/2>log.x&&px+TILE/2<log.x+log.w);
+        if(!onLog){endGame();return;}
+        const log=pLane.items.find(l=>px+TILE/2>l.x&&px+TILE/2<l.x+l.w);
+        if(log){player.col=Math.floor((log.x+log.w/2)/TILE);if(player.col<0||player.col>=COLS)endGame();}
+    }
+    // Hit by car
+    if(pLane&&pLane.type==='road'){
+        const px=player.col*TILE;
+        const hit=pLane.items.some(car=>px+TILE-5>car.x&&px+5<car.x+car.w);
+        if(hit)endGame();
+    }
+}
+
+function draw(){
+    ctx.fillStyle='#1a4a1a';ctx.fillRect(0,0,W,H);
+    ctx.save();ctx.translate(0,-camY);
+    lanes.forEach(l=>{
+        const y=l.row*TILE;
+        if(l.type==='grass'){ctx.fillStyle='#1a5a1a';ctx.fillRect(0,y,W,TILE);}
+        else if(l.type==='road'){ctx.fillStyle='#333';ctx.fillRect(0,y,W,TILE);ctx.strokeStyle='#555';ctx.setLineDash([10,10]);ctx.beginPath();ctx.moveTo(0,y+TILE/2);ctx.lineTo(W,y+TILE/2);ctx.stroke();ctx.setLineDash([]);}
+        else{ctx.fillStyle='#1a3a6a';ctx.fillRect(0,y,W,TILE);}
+        // Items
+        l.items.forEach(item=>{
+            if(l.type==='road'){ctx.fillStyle='#ff4444';ctx.fillRect(item.x,y+4,item.w,TILE-8);ctx.fillStyle='#ffff88';ctx.fillRect(item.dir>0?item.x+item.w-6:item.x,y+8,6,6);}
+            else if(l.type==='river'){ctx.fillStyle='#8B4513';ctx.fillRect(item.x,y+6,item.w,TILE-12);}
+            else if(item.tree){ctx.fillStyle='#0a3a0a';ctx.fillRect(item.x+12,y+4,16,TILE-8);ctx.fillStyle='#1a6a1a';ctx.beginPath();ctx.arc(item.x+20,y+8,14,0,Math.PI*2);ctx.fill();}
+        });
+    });
+    // Player
+    const px=player.col*TILE,py=player.row*TILE;
+    ctx.fillStyle='#ffd166';ctx.fillRect(px+6,py+6,TILE-12,TILE-12);
+    ctx.fillStyle='#333';ctx.fillRect(px+12,py+12,4,4);ctx.fillRect(px+22,py+12,4,4);
+    ctx.fillStyle='#ff8a47';ctx.fillRect(px+16,py+20,8,4);
+    ctx.restore();
+}
+
+function endGame(){
+    state='dead';if(animFrame)cancelAnimationFrame(animFrame);
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+    oTitle.textContent='Squished!';oSub.textContent='';oScore.textContent='Score: '+score;oScore.style.display='block';overlay.classList.remove('hidden');
+}
+
+document.addEventListener('keydown',e=>{
+    if(state!=='running'){if(e.code==='Space'){e.preventDefault();startGame();}return;}
+    if(e.key==='ArrowUp')move(1,0);else if(e.key==='ArrowDown')move(-1,0);
+    else if(e.key==='ArrowLeft')move(0,-1);else if(e.key==='ArrowRight')move(0,1);
+});
+document.querySelectorAll('.ctrl-btn').forEach(btn=>{
+    const handler=()=>{const d=btn.dataset.dir;if(d==='up')move(1,0);else if(d==='down')move(-1,0);else if(d==='left')move(0,-1);else if(d==='right')move(0,1);};
+    btn.addEventListener('click',handler);
+    btn.addEventListener('touchstart',e=>{e.preventDefault();handler();},{passive:false});
+});
+let sx,sy;
+canvas.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+canvas.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)<15&&Math.abs(dy)<15){move(1,0);return;}
+    if(Math.abs(dx)>Math.abs(dy)){move(0,dx>0?1:-1);}else{move(dy<0?1:-1,0);}
+});
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

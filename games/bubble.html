@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🫧 Bubble Shooter — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--deep-purple:#7c3aed;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--purple);bottom:-80px;right:-80px}
+.bg-blob:nth-child(3){width:300px;height:300px;background:var(--cyan);top:50%;left:50%;transform:translate(-50%,-50%)}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:6px}.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--cyan));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;min-width:70px;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--green)}.lv-val{color:var(--cyan)}.hi-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);box-shadow:0 0 30px rgba(6,214,160,.12);background:#0a0618}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--cyan));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🫧 Bubble Shooter</span></div>
+<header><h1>Bubble Shooter</h1><p>Match 3+ bubbles to pop them!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Level</div><div class="value lv-val" id="hLevel">1</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="390" height="520"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Bubble Shooter</h2>
+            <div class="sub" id="oSub">Aim and shoot to match 3+ same-color bubbles!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Bubble Shooter &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_bubble',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hLevel=document.getElementById('hLevel'),hBest=document.getElementById('hBest');
+const BEST_KEY='bubble_best';
+let bestScore=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=bestScore;
+
+const R=16,COLS=12,COLORS=['#ff6b9d','#06d6a0','#00e5ff','#ff8a47','#a855f7','#ffd166'];
+const ROW_H=R*Math.sqrt(3);
+let state='idle',score,level,grid,shootBubble,nextColor,aimAngle,moving,animFrame,particles;
+
+function startGame(){
+    score=0;level=1;grid=[];particles=[];moving=null;aimAngle=-Math.PI/2;
+    for(let row=0;row<8;row++){
+        const cols=row%2===0?COLS:COLS-1;
+        grid[row]=[];
+        for(let c=0;c<cols;c++){
+            grid[row][c]=Math.floor(Math.random()*Math.min(3+level,COLORS.length));
+        }
+    }
+    for(let row=8;row<20;row++)grid[row]=[];
+    nextColor=randColor();shootBubble={color:randColor()};
+    state='running';overlay.classList.add('hidden');updateHUD();
+    if(animFrame)cancelAnimationFrame(animFrame);animFrame=requestAnimationFrame(loop);
+}
+function randColor(){return Math.floor(Math.random()*Math.min(3+level,COLORS.length));}
+function updateHUD(){hScore.textContent=score;hLevel.textContent=level;if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}}
+function getBubblePos(row,col){const offset=row%2===0?R:2*R;return{x:offset+col*2*R,y:R+row*ROW_H};}
+function getShooterPos(){return{x:W/2,y:H-30};}
+
+function shoot(){
+    if(moving||state!=='running')return;
+    const sp=getShooterPos();
+    const speed=10;
+    moving={x:sp.x,y:sp.y,vx:Math.cos(aimAngle)*speed,vy:Math.sin(aimAngle)*speed,color:shootBubble.color};
+    shootBubble={color:nextColor};nextColor=randColor();
+}
+
+function findClosestCell(x,y){
+    let best=null,bestD=Infinity;
+    for(let row=0;row<20;row++){
+        const cols=row%2===0?COLS:COLS-1;
+        for(let c=0;c<cols;c++){
+            const p=getBubblePos(row,c);
+            const d=Math.hypot(p.x-x,p.y-y);
+            if(d<bestD&&(!grid[row]||grid[row][c]===undefined||grid[row][c]===-1)){bestD=d;best={row,col:c};}
+        }
+    }
+    return best;
+}
+
+function getNeighbors(row,col){
+    const n=[];const even=row%2===0;
+    const dirs=even?[[-1,0],[-1,-1],[0,-1],[0,1],[1,0],[1,-1]]:[[-1,0],[-1,1],[0,-1],[0,1],[1,0],[1,1]];
+    dirs.forEach(([dr,dc])=>{
+        const nr=row+dr,nc=col+dc;
+        if(nr>=0&&nr<20){const cols=nr%2===0?COLS:COLS-1;if(nc>=0&&nc<cols)n.push({row:nr,col:nc});}
+    });
+    return n;
+}
+
+function floodFill(row,col,color){
+    const visited=new Set(),matches=[];
+    const q=[{row,col}];
+    while(q.length){
+        const c=q.pop();const key=c.row+','+c.col;
+        if(visited.has(key))continue;visited.add(key);
+        if(!grid[c.row]||grid[c.row][c.col]!==color)continue;
+        matches.push(c);
+        getNeighbors(c.row,c.col).forEach(n=>q.push(n));
+    }
+    return matches;
+}
+
+function findFloating(){
+    const attached=new Set();
+    const q=[];
+    // All row 0 bubbles are attached
+    if(grid[0])grid[0].forEach((v,c)=>{if(v>=0){q.push({row:0,col:c});attached.add('0,'+c);}});
+    while(q.length){
+        const c=q.pop();
+        getNeighbors(c.row,c.col).forEach(n=>{
+            const key=n.row+','+n.col;
+            if(!attached.has(key)&&grid[n.row]&&grid[n.row][n.col]>=0){attached.add(key);q.push(n);}
+        });
+    }
+    const floating=[];
+    for(let r=0;r<20;r++){
+        if(!grid[r])continue;
+        const cols=r%2===0?COLS:COLS-1;
+        for(let c=0;c<cols;c++){
+            if(grid[r][c]>=0&&!attached.has(r+','+c))floating.push({row:r,col:c});
+        }
+    }
+    return floating;
+}
+
+function placeBubble(row,col,color){
+    if(!grid[row])grid[row]=[];
+    grid[row][col]=color;
+    const matches=floodFill(row,col,color);
+    let popped=0;
+    if(matches.length>=3){
+        matches.forEach(m=>{const p=getBubblePos(m.row,m.col);particles.push({x:p.x,y:p.y,vx:(Math.random()-0.5)*4,vy:Math.random()*-3,life:30,color:COLORS[grid[m.row][m.col]]});grid[m.row][m.col]=-1;});
+        popped+=matches.length;
+        const floating=findFloating();
+        floating.forEach(f=>{const p=getBubblePos(f.row,f.col);particles.push({x:p.x,y:p.y,vx:(Math.random()-0.5)*3,vy:2+Math.random()*3,life:40,color:COLORS[grid[f.row][f.col]]});grid[f.row][f.col]=-1;});
+        popped+=floating.length;
+    }
+    score+=popped*10;updateHUD();
+    // Check win (all cleared)
+    let anyLeft=false;
+    for(let r=0;r<20;r++){if(grid[r])grid[r].forEach(v=>{if(v>=0)anyLeft=true;});}
+    if(!anyLeft){level++;startGame();return;}
+    // Check lose
+    for(let r=15;r<20;r++){if(grid[r])grid[r].forEach(v=>{if(v>=0){endGame();return;}});}
+}
+
+function loop(){
+    if(state!=='running')return;
+    update();draw();animFrame=requestAnimationFrame(loop);
+}
+
+function update(){
+    if(moving){
+        moving.x+=moving.vx;moving.y+=moving.vy;
+        if(moving.x<R){moving.x=R;moving.vx*=-1;}
+        if(moving.x>W-R){moving.x=W-R;moving.vx*=-1;}
+        if(moving.y<R){
+            const cell=findClosestCell(moving.x,moving.y);
+            if(cell)placeBubble(cell.row,cell.col,moving.color);
+            moving=null;return;
+        }
+        // Check collision with existing bubbles
+        for(let r=0;r<20;r++){
+            if(!grid[r])continue;
+            const cols=r%2===0?COLS:COLS-1;
+            for(let c=0;c<cols;c++){
+                if(grid[r][c]<0)continue;
+                const p=getBubblePos(r,c);
+                if(Math.hypot(moving.x-p.x,moving.y-p.y)<R*1.8){
+                    const cell=findClosestCell(moving.x,moving.y);
+                    if(cell)placeBubble(cell.row,cell.col,moving.color);
+                    moving=null;return;
+                }
+            }
+        }
+    }
+    particles=particles.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.1;p.life--;return p.life>0;});
+}
+
+function draw(){
+    ctx.fillStyle='#0a0618';ctx.fillRect(0,0,W,H);
+    // Grid bubbles
+    for(let r=0;r<20;r++){
+        if(!grid[r])continue;
+        const cols=r%2===0?COLS:COLS-1;
+        for(let c=0;c<cols;c++){
+            if(grid[r][c]<0)continue;
+            const p=getBubblePos(r,c);
+            ctx.fillStyle=COLORS[grid[r][c]];ctx.beginPath();ctx.arc(p.x,p.y,R-1,0,Math.PI*2);ctx.fill();
+            ctx.fillStyle='rgba(255,255,255,0.25)';ctx.beginPath();ctx.arc(p.x-4,p.y-4,4,0,Math.PI*2);ctx.fill();
+        }
+    }
+    // Moving bubble
+    if(moving){
+        ctx.fillStyle=COLORS[moving.color];ctx.beginPath();ctx.arc(moving.x,moving.y,R-1,0,Math.PI*2);ctx.fill();
+    }
+    // Particles
+    particles.forEach(p=>{ctx.globalAlpha=p.life/40;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fill();});
+    ctx.globalAlpha=1;
+    // Aim line
+    const sp=getShooterPos();
+    ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.setLineDash([5,5]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(sp.x,sp.y);ctx.lineTo(sp.x+Math.cos(aimAngle)*100,sp.y+Math.sin(aimAngle)*100);ctx.stroke();
+    ctx.setLineDash([]);
+    // Shooter bubble
+    ctx.fillStyle=COLORS[shootBubble.color];ctx.beginPath();ctx.arc(sp.x,sp.y,R-1,0,Math.PI*2);ctx.fill();
+    // Next bubble
+    ctx.globalAlpha=0.5;ctx.fillStyle=COLORS[nextColor];ctx.beginPath();ctx.arc(sp.x+40,sp.y,R*0.7,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    ctx.fillStyle='var(--text-muted)';ctx.font='10px sans-serif';ctx.fillText('next',sp.x+30,sp.y+22);
+    // Danger line
+    ctx.strokeStyle='rgba(255,50,50,0.2)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,15*ROW_H+R);ctx.lineTo(W,15*ROW_H+R);ctx.stroke();
+}
+
+function endGame(){
+    state='dead';oTitle.textContent='Game Over';oSub.textContent='Bubbles reached the danger zone!';oScore.textContent='Score: '+score;oScore.style.display='block';overlay.classList.remove('hidden');
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+}
+
+// Aim controls
+function setAim(clientX,clientY){
+    const r=canvas.getBoundingClientRect();const x=(clientX-r.left)/r.width*W;const y=(clientY-r.top)/r.height*H;
+    const sp=getShooterPos();aimAngle=Math.atan2(y-sp.y,x-sp.x);
+    if(aimAngle>-0.1)aimAngle=-0.1;if(aimAngle<-Math.PI+0.1)aimAngle=-Math.PI+0.1;
+}
+canvas.addEventListener('mousemove',e=>setAim(e.clientX,e.clientY));
+canvas.addEventListener('click',e=>{if(state!=='running'){startGame();return;}setAim(e.clientX,e.clientY);shoot();});
+canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state!=='running'){startGame();return;}setAim(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();setAim(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+canvas.addEventListener('touchend',e=>{e.preventDefault();shoot();},{passive:false});
+document.getElementById('startBtn').addEventListener('click',startGame);
+draw();
+})();
+</script>
+</body>
+</html>

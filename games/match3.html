@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>💎 Match-3 — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--orange);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--purple);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--orange),var(--purple));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--orange),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:400px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--orange)}.hi-val{color:var(--yellow)}.m-val{color:var(--cyan)}
+.board{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin:0 auto;max-width:360px;user-select:none;-webkit-user-select:none}
+.gem{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;cursor:pointer;transition:transform .15s,opacity .3s;border:2px solid transparent}
+.gem.selected{border-color:#fff;transform:scale(1.1)}
+.gem.removing{opacity:0;transform:scale(0.5)}
+.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:50}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--orange),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--orange);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--orange),var(--purple));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">💎 Match-3</span></div>
+<header><h1>Match-3</h1><p>Swap gems to match 3 or more!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Moves</div><div class="value m-val" id="hMoves">30</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div id="board" class="board"></div>
+</div>
+<div class="overlay" id="overlay">
+    <h2 id="oTitle">Match-3</h2>
+    <div class="sub" id="oSub">Swap adjacent gems to create lines of 3+!<br>Score as many points in 30 moves!</div>
+    <div class="final-score" id="oScore" style="display:none"></div>
+    <button class="start-btn" id="startBtn">Play!</button>
+</div>
+<div class="game-footer">Match-3 &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_match3',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const ROWS=8,COLS=8,TYPES=['🔴','🟡','🟢','🔵','🟣','🟠'];
+const boardEl=document.getElementById('board');
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest'),hMoves=document.getElementById('hMoves');
+const BEST_KEY='match3_best';
+let bestScore=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=bestScore;
+let grid,score,moves,selected,processing;
+
+function randType(){return Math.floor(Math.random()*TYPES.length);}
+
+function init(){
+    grid=[];
+    for(let r=0;r<ROWS;r++){
+        grid[r]=[];
+        for(let c=0;c<COLS;c++){
+            let t;
+            do{t=randType();}while(
+                (c>=2&&grid[r][c-1]===t&&grid[r][c-2]===t)||
+                (r>=2&&grid[r-1][c]===t&&grid[r-2][c]===t)
+            );
+            grid[r][c]=t;
+        }
+    }
+}
+
+function render(){
+    boardEl.innerHTML='';
+    for(let r=0;r<ROWS;r++){
+        for(let c=0;c<COLS;c++){
+            const el=document.createElement('div');
+            el.className='gem';
+            el.textContent=grid[r][c]>=0?TYPES[grid[r][c]]:'';
+            el.dataset.r=r;el.dataset.c=c;
+            if(selected&&selected[0]===r&&selected[1]===c)el.classList.add('selected');
+            boardEl.appendChild(el);
+        }
+    }
+}
+
+function findMatches(){
+    const matched=new Set();
+    // Rows
+    for(let r=0;r<ROWS;r++){
+        for(let c=0;c<COLS-2;c++){
+            if(grid[r][c]<0)continue;
+            if(grid[r][c]===grid[r][c+1]&&grid[r][c]===grid[r][c+2]){
+                let e=c+2;while(e+1<COLS&&grid[r][e+1]===grid[r][c])e++;
+                for(let i=c;i<=e;i++)matched.add(r+','+i);
+            }
+        }
+    }
+    // Cols
+    for(let c=0;c<COLS;c++){
+        for(let r=0;r<ROWS-2;r++){
+            if(grid[r][c]<0)continue;
+            if(grid[r][c]===grid[r+1][c]&&grid[r][c]===grid[r+2][c]){
+                let e=r+2;while(e+1<ROWS&&grid[e+1][c]===grid[r][c])e++;
+                for(let i=r;i<=e;i++)matched.add(i+','+c);
+            }
+        }
+    }
+    return matched;
+}
+
+function removeAndDrop(matched){
+    matched.forEach(k=>{const[r,c]=k.split(',').map(Number);grid[r][c]=-1;});
+    score+=matched.size*10;hScore.textContent=score;
+    // Gravity
+    for(let c=0;c<COLS;c++){
+        let empty=ROWS-1;
+        for(let r=ROWS-1;r>=0;r--){
+            if(grid[r][c]>=0){
+                grid[empty][c]=grid[r][c];
+                if(empty!==r)grid[r][c]=-1;
+                empty--;
+            }
+        }
+        for(let r=empty;r>=0;r--)grid[r][c]=randType();
+    }
+}
+
+async function processMatches(){
+    processing=true;
+    let iters=0;
+    while(iters<20){
+        const matched=findMatches();
+        if(matched.size===0)break;
+        removeAndDrop(matched);
+        render();
+        await new Promise(r=>setTimeout(r,250));
+        iters++;
+    }
+    processing=false;
+    if(moves<=0)endGame();
+}
+
+function swap(r1,c1,r2,c2){
+    const t=grid[r1][c1];grid[r1][c1]=grid[r2][c2];grid[r2][c2]=t;
+}
+
+function isAdj(r1,c1,r2,c2){
+    return(Math.abs(r1-r2)+Math.abs(c1-c2))===1;
+}
+
+function handleClick(r,c){
+    if(processing||moves<=0)return;
+    if(!selected){selected=[r,c];render();return;}
+    const[sr,sc]=selected;
+    if(sr===r&&sc===c){selected=null;render();return;}
+    if(!isAdj(sr,sc,r,c)){selected=[r,c];render();return;}
+    swap(sr,sc,r,c);
+    const matched=findMatches();
+    if(matched.size===0){swap(sr,sc,r,c);selected=null;render();return;}
+    selected=null;moves--;hMoves.textContent=moves;
+    render();processMatches();
+}
+
+function startGame(){
+    init();score=0;moves=30;selected=null;processing=false;
+    hScore.textContent=0;hMoves.textContent=30;
+    render();processMatches();
+    overlay.classList.add('hidden');oScore.style.display='none';
+}
+
+function endGame(){
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+    oTitle.textContent='No Moves Left!';oSub.textContent='';oScore.textContent='Score: '+score;oScore.style.display='block';
+    overlay.classList.remove('hidden');document.getElementById('startBtn').textContent='Play Again';
+}
+
+boardEl.addEventListener('click',e=>{
+    const t=e.target;if(!t.classList.contains('gem'))return;
+    handleClick(+t.dataset.r,+t.dataset.c);
+});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

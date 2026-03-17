@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🧮 Speed Math — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--purple);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--green);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--purple),var(--green));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--purple),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:400px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--purple)}.hi-val{color:var(--yellow)}.t-val{color:var(--pink)}
+.problem{text-align:center;padding:30px;background:var(--bg-card);border:1px solid var(--border);border-radius:16px;margin-bottom:12px}
+.problem-text{font-size:2.5rem;font-weight:900;letter-spacing:3px}
+.timer-bar{height:6px;border-radius:3px;background:var(--border);margin-top:10px;overflow:hidden}
+.timer-fill{height:100%;background:var(--green);transition:width .1s linear;border-radius:3px}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.ans-btn{padding:18px;border-radius:12px;border:2px solid var(--border);background:var(--bg-card);color:var(--text-light);font-size:1.3rem;font-weight:700;cursor:pointer;transition:all .15s;text-align:center}
+.ans-btn:hover{background:rgba(168,85,247,.15);border-color:var(--purple)}
+.ans-btn.correct{background:rgba(6,214,160,.2);border-color:var(--green);color:var(--green)}
+.ans-btn.wrong{background:rgba(255,107,157,.15);border-color:var(--pink);color:var(--pink)}
+.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:50}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--purple),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--purple);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--purple),var(--green));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🧮 Speed Math</span></div>
+<header><h1>Speed Math</h1><p>Solve as fast as you can!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Time</div><div class="value t-val" id="hTime">30</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="problem">
+        <div class="problem-text" id="problem">? + ?</div>
+        <div class="timer-bar"><div class="timer-fill" id="timerFill" style="width:100%"></div></div>
+    </div>
+    <div class="answers" id="answers"></div>
+</div>
+<div class="overlay" id="overlay">
+    <h2 id="oTitle">Speed Math</h2>
+    <div class="sub" id="oSub">Solve arithmetic problems quickly!<br>Pick the correct answer before time runs out!</div>
+    <div class="final-score" id="oScore" style="display:none"></div>
+    <button class="start-btn" id="startBtn">Go!</button>
+</div>
+<div class="game-footer">Speed Math &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_speedmath',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest'),hTime=document.getElementById('hTime');
+const problemEl=document.getElementById('problem'),answersEl=document.getElementById('answers'),timerFill=document.getElementById('timerFill');
+const BEST_KEY='speedmath_best';
+let bestScore=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=bestScore;
+const GAME_TIME=30;
+let state='idle',score,timeLeft,timer,correct;
+
+function genProblem(){
+    const ops=['+','-','×'];
+    const op=ops[Math.floor(Math.random()*ops.length)];
+    let a,b,ans;
+    if(op==='+'){a=Math.floor(Math.random()*50)+1;b=Math.floor(Math.random()*50)+1;ans=a+b;}
+    else if(op==='-'){a=Math.floor(Math.random()*50)+10;b=Math.floor(Math.random()*a);ans=a-b;}
+    else{a=Math.floor(Math.random()*12)+2;b=Math.floor(Math.random()*12)+2;ans=a*b;}
+    correct=ans;
+    problemEl.textContent=a+' '+op+' '+b;
+    // Generate 4 choices
+    const choices=new Set([ans]);
+    while(choices.size<4){
+        let fake=ans+Math.floor(Math.random()*21)-10;
+        if(fake!==ans&&fake>=0)choices.add(fake);
+    }
+    const arr=[...choices].sort(()=>Math.random()-0.5);
+    answersEl.innerHTML='';
+    arr.forEach(v=>{
+        const btn=document.createElement('div');
+        btn.className='ans-btn';btn.textContent=v;
+        btn.addEventListener('click',()=>answer(v,btn));
+        answersEl.appendChild(btn);
+    });
+}
+
+function answer(val,btn){
+    if(state!=='running')return;
+    const btns=answersEl.querySelectorAll('.ans-btn');
+    btns.forEach(b=>b.style.pointerEvents='none');
+    if(val===correct){
+        btn.classList.add('correct');score++;hScore.textContent=score;
+        timeLeft=Math.min(GAME_TIME,timeLeft+1);
+    } else {
+        btn.classList.add('wrong');timeLeft=Math.max(0,timeLeft-2);
+    }
+    setTimeout(genProblem,300);
+}
+
+function startGame(){
+    score=0;timeLeft=GAME_TIME;state='running';
+    hScore.textContent=0;hTime.textContent=GAME_TIME;
+    overlay.classList.add('hidden');oScore.style.display='none';
+    genProblem();
+    if(timer)clearInterval(timer);
+    timer=setInterval(()=>{
+        timeLeft-=0.1;
+        hTime.textContent=Math.ceil(timeLeft);
+        timerFill.style.width=(timeLeft/GAME_TIME*100)+'%';
+        if(timeLeft<=5)timerFill.style.background='var(--pink)';else timerFill.style.background='var(--green)';
+        if(timeLeft<=0){clearInterval(timer);endGame();}
+    },100);
+}
+
+function endGame(){
+    state='dead';
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+    oTitle.textContent='Time Up!';oSub.textContent='';oScore.textContent='Score: '+score;oScore.style.display='block';
+    overlay.classList.remove('hidden');document.getElementById('startBtn').textContent='Again';
+}
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

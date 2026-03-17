@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🏒 Air Hockey — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--cyan);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--pink);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--cyan),var(--pink));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.p-val{color:var(--cyan)}.a-val{color:var(--pink)}.hi-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#1a3355}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--cyan);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--cyan),var(--pink));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🏒 Air Hockey</span></div>
+<header><h1>Air Hockey</h1><p>Drag your paddle — first to 7 wins!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">You</div><div class="value p-val" id="hPlayer">0</div></div>
+        <div class="hud-box"><div class="label">CPU</div><div class="value a-val" id="hCPU">0</div></div>
+        <div class="hud-box"><div class="label">Wins</div><div class="value hi-val" id="hWins">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="380" height="520"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Air Hockey</h2>
+            <div class="sub" id="oSub">Drag your paddle (bottom) to hit the puck!<br>First to 7 points wins!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Air Hockey &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_airhockey',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hPlayer=document.getElementById('hPlayer'),hCPU=document.getElementById('hCPU'),hWins=document.getElementById('hWins');
+const WINS_KEY='airhockey_wins';
+let totalWins=+localStorage.getItem(WINS_KEY)||0;hWins.textContent=totalWins;
+
+const PR=28,PUCK_R=14,GOAL_W=100;
+let state='idle',pScore,cScore,player,cpu,puck,dragging,dragOff,af;
+
+function reset(){
+    player={x:W/2,y:H-60,r:PR,prevX:W/2,prevY:H-60};
+    cpu={x:W/2,y:60,r:PR,prevX:W/2,prevY:60};
+    puck={x:W/2,y:H/2,r:PUCK_R,vx:0,vy:0};
+}
+
+function startGame(){
+    pScore=0;cScore=0;reset();
+    state='running';overlay.classList.add('hidden');
+    hPlayer.textContent=0;hCPU.textContent=0;
+    if(af)cancelAnimationFrame(af);af=requestAnimationFrame(loop);
+}
+
+function loop(){if(state!=='running')return;update();draw();af=requestAnimationFrame(loop);}
+
+function update(){
+    // CPU AI
+    const cpuSpeed=3.5;
+    let tx=puck.x,ty=40;
+    if(puck.vy<0&&puck.y<H/2){tx=puck.x;ty=puck.y-40;}
+    else{tx=W/2;ty=50;}
+    const dx=tx-cpu.x,dy=ty-cpu.y;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist>2){cpu.x+=dx/dist*Math.min(cpuSpeed,dist);cpu.y+=dy/dist*Math.min(cpuSpeed,dist);}
+    cpu.y=Math.max(cpu.r,Math.min(H/2-cpu.r,cpu.y));
+    cpu.x=Math.max(cpu.r,Math.min(W-cpu.r,cpu.x));
+
+    // Puck physics
+    puck.x+=puck.vx;puck.y+=puck.vy;
+    puck.vx*=0.998;puck.vy*=0.998;
+
+    // Wall bounce
+    if(puck.x-puck.r<0){puck.x=puck.r;puck.vx*=-0.9;}
+    if(puck.x+puck.r>W){puck.x=W-puck.r;puck.vx*=-0.9;}
+
+    // Goals
+    const gL=(W-GOAL_W)/2,gR=(W+GOAL_W)/2;
+    if(puck.y-puck.r<0){
+        if(puck.x>gL&&puck.x<gR){pScore++;hPlayer.textContent=pScore;afterGoal();return;}
+        puck.y=puck.r;puck.vy*=-0.9;
+    }
+    if(puck.y+puck.r>H){
+        if(puck.x>gL&&puck.x<gR){cScore++;hCPU.textContent=cScore;afterGoal();return;}
+        puck.y=H-puck.r;puck.vy*=-0.9;
+    }
+
+    // Paddle collisions
+    [player,cpu].forEach(p=>{
+        const ddx=puck.x-p.x,ddy=puck.y-p.y;
+        const d=Math.sqrt(ddx*ddx+ddy*ddy);
+        if(d<p.r+puck.r){
+            const nx=ddx/d,ny=ddy/d;
+            puck.x=p.x+nx*(p.r+puck.r);puck.y=p.y+ny*(p.r+puck.r);
+            // Velocity from paddle movement
+            const pvx=(p.x-p.prevX)*0.5;const pvy=(p.y-p.prevY)*0.5;
+            puck.vx=nx*6+pvx;puck.vy=ny*6+pvy;
+        }
+        p.prevX=p.x;p.prevY=p.y;
+    });
+
+    // Speed cap
+    const spd=Math.sqrt(puck.vx*puck.vx+puck.vy*puck.vy);
+    if(spd>10){puck.vx*=10/spd;puck.vy*=10/spd;}
+}
+
+function afterGoal(){
+    if(pScore>=7||cScore>=7){
+        state='dead';if(af)cancelAnimationFrame(af);
+        const won=pScore>=7;
+        if(won){totalWins++;localStorage.setItem(WINS_KEY,totalWins);hWins.textContent=totalWins;}
+        oTitle.textContent=won?'You Win!':'You Lose!';oSub.textContent='';oScore.textContent=pScore+' - '+cScore;oScore.style.display='block';
+        overlay.classList.remove('hidden');document.getElementById('startBtn').textContent='Rematch';
+        return;
+    }
+    reset();
+    puck.vy=(pScore>cScore)?-2:2;
+}
+
+function draw(){
+    // Table
+    ctx.fillStyle='#1a3355';ctx.fillRect(0,0,W,H);
+    // Center line
+    ctx.setLineDash([8,8]);ctx.strokeStyle='rgba(240,230,255,0.15)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();ctx.setLineDash([]);
+    // Center circle
+    ctx.strokeStyle='rgba(240,230,255,0.1)';ctx.beginPath();ctx.arc(W/2,H/2,50,0,Math.PI*2);ctx.stroke();
+    // Goals
+    const gL=(W-GOAL_W)/2,gR=(W+GOAL_W)/2;
+    ctx.fillStyle='rgba(0,229,255,0.2)';ctx.fillRect(gL,0,GOAL_W,8);
+    ctx.fillStyle='rgba(255,107,157,0.2)';ctx.fillRect(gL,H-8,GOAL_W,8);
+    // Puck
+    ctx.fillStyle='#f0e6ff';ctx.beginPath();ctx.arc(puck.x,puck.y,puck.r,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=2;ctx.stroke();
+    // Player paddle
+    ctx.fillStyle='#00e5ff';ctx.beginPath();ctx.arc(player.x,player.y,PR,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.arc(player.x,player.y,PR*0.5,0,Math.PI*2);ctx.fill();
+    // CPU paddle
+    ctx.fillStyle='#ff6b9d';ctx.beginPath();ctx.arc(cpu.x,cpu.y,PR,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.arc(cpu.x,cpu.y,PR*0.5,0,Math.PI*2);ctx.fill();
+}
+
+// Touch/mouse drag
+function getPos(e){
+    const rect=canvas.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    return{x:(t.clientX-rect.left)/rect.width*W,y:(t.clientY-rect.top)/rect.height*H};
+}
+
+canvas.addEventListener('mousedown',e=>{if(state!=='running')return;const p=getPos(e);const d=Math.sqrt((p.x-player.x)**2+(p.y-player.y)**2);if(d<PR*2){dragging=true;}});
+canvas.addEventListener('mousemove',e=>{if(!dragging)return;const p=getPos(e);player.x=Math.max(PR,Math.min(W-PR,p.x));player.y=Math.max(H/2+PR,Math.min(H-PR,p.y));});
+canvas.addEventListener('mouseup',()=>{dragging=false;});
+
+canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state!=='running'){startGame();return;}const p=getPos(e);const d=Math.sqrt((p.x-player.x)**2+(p.y-player.y)**2);if(d<PR*3){dragging=true;}},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(!dragging)return;const p=getPos(e);player.x=Math.max(PR,Math.min(W-PR,p.x));player.y=Math.max(H/2+PR,Math.min(H-PR,p.y));},{passive:false});
+canvas.addEventListener('touchend',()=>{dragging=false;});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

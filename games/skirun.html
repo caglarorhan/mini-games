@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>⛷️ Ski Run — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--cyan);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--blue);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:400px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--cyan)}.d-val{color:var(--green)}.h-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#dde8f0}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--cyan);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.controls{display:none;gap:10px;margin-top:12px;justify-content:center}
+@media(max-width:768px){.controls{display:flex}}
+.ctrl-btn{width:64px;height:56px;border:none;border-radius:14px;font-size:1.3rem;font-weight:700;cursor:pointer;background:var(--bg-card);color:var(--text-light);border:1px solid var(--border)}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">⛷️ Ski Run</span></div>
+<header><h1>Ski Run</h1><p>Dodge trees, pass through gates!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Distance</div><div class="value d-val" id="hDist">0m</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value h-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="360" height="520"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>⛷️ Ski Run</h2>
+            <div class="sub">Steer left/right to dodge trees.<br>Pass through gates for points!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+    <div class="controls">
+        <button class="ctrl-btn" data-dir="left">◄</button>
+        <button class="ctrl-btn" data-dir="right">►</button>
+    </div>
+</div>
+<div class="game-footer">Ski Run &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_skirun',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=360,H=520;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hDist=document.getElementById('hDist'),hBest=document.getElementById('hBest');
+const BEST_KEY='skirun_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+let px,speed,score,dist,obstacles,gates,state,raf;
+let keys={};
+
+function startGame(){
+    px=W/2;speed=3;score=0;dist=0;
+    obstacles=[];gates=[];
+    state='playing';
+    hScore.textContent=0;hDist.textContent='0m';
+    overlay.classList.add('hidden');oScore.style.display='none';
+    // Pre-populate
+    for(let y=0;y<H;y+=80)spawnRow(y);
+    if(raf)cancelAnimationFrame(raf);
+    loop();
+}
+
+function spawnRow(y){
+    const r=Math.random();
+    if(r<0.6){
+        // Tree
+        obstacles.push({x:Math.random()*(W-40)+20,y:y||H+20,type:'tree'});
+        if(Math.random()<0.3)obstacles.push({x:Math.random()*(W-40)+20,y:(y||H+20)+30,type:'rock'});
+    }else{
+        // Gate
+        const gx=Math.random()*(W-120)+60;
+        gates.push({x:gx,y:y||H+20,w:80,passed:false});
+    }
+}
+
+function update(){
+    if(keys.left)px-=4;
+    if(keys.right)px+=4;
+    px=Math.max(10,Math.min(W-10,px));
+
+    dist+=speed*0.1;
+    speed=Math.min(8,3+dist*0.003);
+    hDist.textContent=Math.floor(dist)+'m';
+
+    // Move obstacles up
+    for(let i=obstacles.length-1;i>=0;i--){
+        obstacles[i].y-=speed;
+        if(obstacles[i].y<-30){obstacles.splice(i,1);continue;}
+        // Collision
+        const o=obstacles[i];
+        const hitR=o.type==='tree'?12:8;
+        if(Math.abs(o.x-px)<hitR&&Math.abs(o.y-80)<hitR){
+            endGame();return;
+        }
+    }
+    // Move gates
+    for(let i=gates.length-1;i>=0;i--){
+        gates[i].y-=speed;
+        if(gates[i].y<-20){gates.splice(i,1);continue;}
+        const g=gates[i];
+        if(!g.passed&&g.y<80&&g.y>60){
+            if(px>g.x&&px<g.x+g.w){
+                g.passed=true;score+=50;hScore.textContent=score;
+            }
+        }
+    }
+    // Spawn new
+    if((obstacles.length+gates.length)<8){
+        spawnRow(0);
+    }
+    // Random spawn from bottom
+    if(Math.random()<0.05){spawnRow(0);}
+}
+
+function draw(){
+    // Snow background
+    ctx.fillStyle='#e8eef5';ctx.fillRect(0,0,W,H);
+    // Ski tracks
+    ctx.strokeStyle='rgba(180,190,210,0.4)';ctx.lineWidth=1;
+    for(let y=0;y<H;y+=15){
+        ctx.beginPath();ctx.moveTo(px-3,y);ctx.lineTo(px-5,y+15);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(px+3,y);ctx.lineTo(px+5,y+15);ctx.stroke();
+    }
+    // Gates
+    for(const g of gates){
+        ctx.strokeStyle=g.passed?'#06d6a0':'#ff6b9d';ctx.lineWidth=3;
+        ctx.beginPath();ctx.moveTo(g.x,g.y-8);ctx.lineTo(g.x,g.y+8);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(g.x+g.w,g.y-8);ctx.lineTo(g.x+g.w,g.y+8);ctx.stroke();
+        ctx.strokeStyle=g.passed?'rgba(6,214,160,0.3)':'rgba(255,107,157,0.3)';
+        ctx.beginPath();ctx.moveTo(g.x,g.y);ctx.lineTo(g.x+g.w,g.y);ctx.stroke();
+    }
+    // Obstacles
+    for(const o of obstacles){
+        if(o.type==='tree'){
+            ctx.fillStyle='#2d5a27';
+            ctx.beginPath();ctx.moveTo(o.x,o.y-15);ctx.lineTo(o.x-10,o.y+5);ctx.lineTo(o.x+10,o.y+5);ctx.fill();
+            ctx.fillStyle='#5a3a1a';ctx.fillRect(o.x-2,o.y+5,4,6);
+        }else{
+            ctx.fillStyle='#8899aa';
+            ctx.beginPath();ctx.arc(o.x,o.y,6,0,Math.PI*2);ctx.fill();
+        }
+    }
+    // Player (skier)
+    const py=80;
+    ctx.fillStyle='#118ab2';ctx.fillRect(px-4,py-8,8,16);// body
+    ctx.fillStyle='#ffd166';ctx.beginPath();ctx.arc(px,py-12,5,0,Math.PI*2);ctx.fill();// head
+    // Skis
+    ctx.strokeStyle='#333';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(px-5,py+8);ctx.lineTo(px-7,py+14);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(px+5,py+8);ctx.lineTo(px+7,py+14);ctx.stroke();
+}
+
+function loop(){
+    if(state!=='playing')return;
+    update();draw();raf=requestAnimationFrame(loop);
+}
+
+function endGame(){
+    state='over';
+    const finalScore=score+Math.floor(dist);
+    if(finalScore>best){best=finalScore;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oScore.style.display='block';oScore.textContent='Score: '+finalScore+' ('+Math.floor(dist)+'m)';
+    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');
+}
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a')keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d')keys.right=true;
+});
+document.addEventListener('keyup',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a')keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d')keys.right=false;
+});
+document.querySelectorAll('[data-dir]').forEach(btn=>{
+    const d=btn.dataset.dir;
+    const on=()=>keys[d]=true,off=()=>keys[d]=false;
+    btn.addEventListener('touchstart',e=>{e.preventDefault();on();},{passive:false});
+    btn.addEventListener('touchend',off);btn.addEventListener('touchcancel',off);
+    btn.addEventListener('mousedown',on);btn.addEventListener('mouseup',off);btn.addEventListener('mouseleave',off);
+});
+// Swipe
+let tx=null;
+canvas.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
+canvas.addEventListener('touchmove',e=>{
+    if(tx===null)return;
+    const dx=e.touches[0].clientX-tx;
+    if(dx<-10){keys.left=true;keys.right=false;}
+    else if(dx>10){keys.right=true;keys.left=false;}
+    else{keys.left=false;keys.right=false;}
+},{passive:true});
+canvas.addEventListener('touchend',()=>{tx=null;keys.left=false;keys.right=false;});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

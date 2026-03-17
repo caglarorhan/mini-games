@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🐸 Frogger — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--deep-purple:#7c3aed;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--blue);bottom:-80px;right:-80px}
+.bg-blob:nth-child(3){width:300px;height:300px;background:var(--yellow);top:50%;left:50%;transform:translate(-50%,-50%)}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:6px;transition:color .2s}
+.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--cyan));color:#000;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:500px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;min-width:70px;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--green)}.lv-val{color:var(--cyan)}.li-val{color:var(--pink)}.hi-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);box-shadow:0 0 30px rgba(6,214,160,.12);background:#000}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;transition:opacity .3s}
+.overlay.hidden{opacity:0;pointer-events:none}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--cyan));color:#000;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer;transition:transform .15s}
+.start-btn:hover{transform:translateY(-2px)}
+.mobile-controls{display:none;margin-top:12px;flex-direction:column;align-items:center;gap:8px;user-select:none;-webkit-user-select:none}
+.mob-row{display:flex;gap:8px}
+.mob-btn{background:linear-gradient(135deg,var(--deep-purple),var(--purple));color:#fff;border:none;width:64px;height:54px;border-radius:14px;font-size:1.3rem;font-weight:800;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center}
+.mob-btn:active{transform:scale(.93)}
+@media(max-width:768px){.mobile-controls{display:flex}}
+@media(max-width:500px){header h1{font-size:1.5rem}.hud-box{padding:6px 8px}.hud-box .value{font-size:1rem}}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar">
+    <a href="../index.html" class="back-link">&#8592; Back to Games</a>
+    <span class="game-badge">🐸 Frogger</span>
+</div>
+<header><h1>Frogger</h1><p>Cross the road and river safely — don't get squished!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Level</div><div class="value lv-val" id="hLevel">1</div></div>
+        <div class="hud-box"><div class="label">Lives</div><div class="value li-val" id="hLives">3</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="400" height="520"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Frogger</h2>
+            <div class="sub" id="oSub">Arrow keys or swipe to hop!<br>Cross the road and river to score!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+    <div class="mobile-controls">
+        <div class="mob-row"><button class="mob-btn" id="btnUp">▲</button></div>
+        <div class="mob-row">
+            <button class="mob-btn" id="btnLeft">◄</button>
+            <button class="mob-btn" id="btnDown">▼</button>
+            <button class="mob-btn" id="btnRight">►</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Frogger &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_frogger',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hLevel=document.getElementById('hLevel'),hLives=document.getElementById('hLives'),hBest=document.getElementById('hBest');
+const BEST_KEY='frogger_best';
+let bestScore=+localStorage.getItem(BEST_KEY)||0;
+hBest.textContent=bestScore;
+
+const ROWS=13,CELL=H/ROWS,COLS=Math.floor(W/CELL);
+let state='idle',score,lives,level,frog,lanes,homes,animFrame;
+
+const LANE_TYPES=['safe','road','road','road','road','safe','river','river','river','river','river','safe','home'];
+
+function createLanes(lvl){
+    const spd=0.8+lvl*0.15;
+    return LANE_TYPES.map((type,i)=>{
+        if(type==='road'){
+            const dir=i%2===0?1:-1;
+            const count=2+Math.floor(Math.random()*2);
+            const gap=W/(count);
+            const w=40+Math.random()*30;
+            const obs=[];
+            for(let j=0;j<count;j++)obs.push({x:j*gap,w:w});
+            return{type,y:i*CELL,dir,speed:(1+Math.random()*1.5)*spd*dir,obstacles:obs,color:i%2===0?'#555':'#444'};
+        }
+        if(type==='river'){
+            const dir=i%2===0?1:-1;
+            const count=2+Math.floor(Math.random()*2);
+            const gap=W/count;
+            const w=50+Math.random()*40;
+            const logs=[];
+            for(let j=0;j<count;j++)logs.push({x:j*gap,w:w});
+            return{type,y:i*CELL,dir,speed:(0.8+Math.random()*1.2)*spd*dir,logs,color:'#1a4a8a'};
+        }
+        return{type,y:i*CELL};
+    });
+}
+
+function initHomes(){return Array(5).fill(false);}
+
+function resetFrog(){frog={x:W/2-CELL/2,y:(ROWS-1)*CELL,row:ROWS-1,moving:false};}
+
+function startGame(){
+    if(state==='running')return;
+    score=0;lives=3;level=1;
+    lanes=createLanes(level);homes=initHomes();
+    resetFrog();state='running';overlay.classList.add('hidden');updateHUD();
+    if(animFrame)cancelAnimationFrame(animFrame);
+    animFrame=requestAnimationFrame(loop);
+}
+
+function updateHUD(){
+    hScore.textContent=score;hLevel.textContent=level;hLives.textContent=lives;
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+}
+
+function moveFrog(dir){
+    if(state!=='running')return;
+    if(dir==='up'&&frog.row>0){frog.row--;frog.y=frog.row*CELL;score+=10;updateHUD();}
+    if(dir==='down'&&frog.row<ROWS-1){frog.row++;frog.y=frog.row*CELL;}
+    if(dir==='left'){frog.x-=CELL;if(frog.x<0)frog.x=0;}
+    if(dir==='right'){frog.x+=CELL;if(frog.x>W-CELL)frog.x=W-CELL;}
+}
+
+function loop(ts){
+    if(state!=='running')return;
+    update();draw();animFrame=requestAnimationFrame(loop);
+}
+
+function update(){
+    let onLog=false;
+    lanes.forEach((lane,i)=>{
+        if(lane.type==='road'){
+            lane.obstacles.forEach(o=>{
+                o.x+=lane.speed;
+                if(lane.speed>0&&o.x>W)o.x=-o.w;
+                if(lane.speed<0&&o.x+o.w<0)o.x=W;
+            });
+            // Collision with frog
+            if(frog.row===i){
+                lane.obstacles.forEach(o=>{
+                    if(frog.x+CELL*0.7>o.x&&frog.x+CELL*0.3<o.x+o.w){die();}
+                });
+            }
+        }
+        if(lane.type==='river'){
+            lane.logs.forEach(l=>{
+                l.x+=lane.speed;
+                if(lane.speed>0&&l.x>W)l.x=-l.w;
+                if(lane.speed<0&&l.x+l.w<0)l.x=W;
+            });
+            if(frog.row===i){
+                let onAnyLog=false;
+                lane.logs.forEach(l=>{
+                    if(frog.x+CELL*0.5>l.x&&frog.x+CELL*0.5<l.x+l.w){
+                        onAnyLog=true;frog.x+=lane.speed;onLog=true;
+                    }
+                });
+                if(!onAnyLog)die();
+            }
+        }
+        if(lane.type==='home'&&frog.row===i){
+            // Check home positions
+            const homeW=W/5;
+            let landed=false;
+            for(let h=0;h<5;h++){
+                const hx=h*homeW+homeW*0.25;
+                const hw=homeW*0.5;
+                if(frog.x+CELL*0.3>=hx&&frog.x+CELL*0.7<=hx+hw&&!homes[h]){
+                    homes[h]=true;score+=200;landed=true;
+                    updateHUD();resetFrog();
+                    if(homes.every(Boolean)){level++;lanes=createLanes(level);homes=initHomes();score+=1000;updateHUD();}
+                    break;
+                }
+            }
+            if(!landed)die();
+        }
+    });
+    if(frog.x<-5||frog.x>W+5)die();
+}
+
+function die(){
+    lives--;updateHUD();
+    if(lives<=0){endGame();return;}
+    resetFrog();
+}
+
+function draw(){
+    ctx.fillStyle='#0a0618';ctx.fillRect(0,0,W,H);
+    // Draw lanes
+    lanes.forEach((lane,i)=>{
+        const y=i*CELL;
+        if(lane.type==='safe'){ctx.fillStyle='#1a3a1a';ctx.fillRect(0,y,W,CELL);}
+        if(lane.type==='road'){ctx.fillStyle=lane.color;ctx.fillRect(0,y,W,CELL);
+            // Road lines
+            ctx.strokeStyle='#777';ctx.lineWidth=1;ctx.setLineDash([10,10]);ctx.beginPath();ctx.moveTo(0,y+CELL);ctx.lineTo(W,y+CELL);ctx.stroke();ctx.setLineDash([]);
+            lane.obstacles.forEach(o=>{
+                const colors=['#e74c3c','#f1c40f','#3498db','#e67e22','#9b59b6'];
+                ctx.fillStyle=colors[i%colors.length];
+                ctx.fillRect(o.x,y+4,o.w,CELL-8);
+                // Headlights
+                ctx.fillStyle='#fff';
+                if(lane.speed>0){ctx.fillRect(o.x+o.w-4,y+8,3,4);ctx.fillRect(o.x+o.w-4,y+CELL-12,3,4);}
+                else{ctx.fillRect(o.x+1,y+8,3,4);ctx.fillRect(o.x+1,y+CELL-12,3,4);}
+            });
+        }
+        if(lane.type==='river'){ctx.fillStyle=lane.color;ctx.fillRect(0,y,W,CELL);
+            lane.logs.forEach(l=>{ctx.fillStyle='#8B4513';ctx.fillRect(l.x,y+6,l.w,CELL-12);ctx.fillStyle='#A0522D';ctx.fillRect(l.x+2,y+8,l.w-4,CELL-16);});
+        }
+        if(lane.type==='home'){
+            ctx.fillStyle='#1a4a8a';ctx.fillRect(0,y,W,CELL);
+            const homeW=W/5;
+            for(let h=0;h<5;h++){
+                const hx=h*homeW+homeW*0.25;
+                ctx.fillStyle=homes[h]?'#06d6a0':'#0d3a0d';
+                ctx.fillRect(hx,y+2,homeW*0.5,CELL-4);
+                if(homes[h]){ctx.font='bold '+(CELL*0.5)+'px sans-serif';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText('🐸',hx+homeW*0.25,y+CELL*0.7);}
+            }
+        }
+    });
+    // Frog
+    if(state==='running'){
+        ctx.fillStyle='#06d6a0';
+        ctx.beginPath();
+        const fx=frog.x+CELL*0.5,fy=frog.y+CELL*0.5,r=CELL*0.4;
+        ctx.ellipse(fx,fy,r*0.8,r,0,0,Math.PI*2);ctx.fill();
+        // Eyes
+        ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(fx-r*0.3,fy-r*0.5,r*0.2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(fx+r*0.3,fy-r*0.5,r*0.2,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#000';ctx.beginPath();ctx.arc(fx-r*0.3,fy-r*0.5,r*0.1,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(fx+r*0.3,fy-r*0.5,r*0.1,0,Math.PI*2);ctx.fill();
+        // Legs
+        ctx.strokeStyle='#06d6a0';ctx.lineWidth=3;
+        ctx.beginPath();ctx.moveTo(fx-r*0.8,fy+r*0.3);ctx.lineTo(fx-r*1.1,fy+r*0.8);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(fx+r*0.8,fy+r*0.3);ctx.lineTo(fx+r*1.1,fy+r*0.8);ctx.stroke();
+    }
+}
+
+function endGame(){
+    state='dead';if(animFrame)cancelAnimationFrame(animFrame);
+    oTitle.textContent='Splat!';oSub.textContent='The frog didn\'t make it...';oScore.textContent='Score: '+score;oScore.style.display='block';overlay.classList.remove('hidden');
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+}
+
+document.addEventListener('keydown',e=>{
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();
+    if(e.code==='ArrowUp'||e.code==='KeyW')moveFrog('up');
+    if(e.code==='ArrowDown'||e.code==='KeyS')moveFrog('down');
+    if(e.code==='ArrowLeft'||e.code==='KeyA')moveFrog('left');
+    if(e.code==='ArrowRight'||e.code==='KeyD')moveFrog('right');
+    if(e.code==='Space'&&state!=='running')startGame();
+});
+document.getElementById('startBtn').addEventListener('click',startGame);
+['Up','Down','Left','Right'].forEach(dir=>{
+    const btn=document.getElementById('btn'+dir);
+    btn.addEventListener('touchstart',e=>{e.preventDefault();moveFrog(dir.toLowerCase());});
+    btn.addEventListener('mousedown',()=>moveFrog(dir.toLowerCase()));
+});
+let tX=0,tY=0;
+canvas.addEventListener('touchstart',e=>{tX=e.touches[0].clientX;tY=e.touches[0].clientY;},{passive:true});
+canvas.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tX,dy=e.changedTouches[0].clientY-tY;if(Math.abs(dx)<10&&Math.abs(dy)<10){if(state!=='running')startGame();return;}if(Math.abs(dx)>Math.abs(dy))moveFrog(dx>0?'right':'left');else moveFrog(dy>0?'down':'up');},{passive:true});
+draw();
+})();
+</script>
+</body>
+</html>

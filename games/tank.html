@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🎯 Tank Battle — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--orange);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--orange));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--green)}.hi-val{color:var(--yellow)}.l-val{color:var(--pink)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--orange));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.mobile-controls{display:none;justify-content:center;gap:6px;margin-top:10px}
+.ctrl-pad{display:flex;flex-direction:column;gap:4px;align-items:center}
+.ctrl-row{display:flex;gap:6px}
+.ctrl-btn{width:56px;height:48px;border-radius:12px;border:2px solid var(--border);background:var(--bg-card);color:var(--text-light);font-size:1.3rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+@media(max-width:768px){.mobile-controls{display:flex}}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🎯 Tank Battle</span></div>
+<header><h1>Tank Battle</h1><p>Destroy all enemy tanks!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+        <div class="hud-box"><div class="label">Lives</div><div class="value l-val" id="hLives">3</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="390" height="390"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🎯 Tank Battle</h2>
+            <div class="sub">Move and shoot enemy tanks!<br>Arrow keys + Space. Protect your base!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Battle!</button>
+        </div>
+    </div>
+    <div class="mobile-controls">
+        <div class="ctrl-pad">
+            <div class="ctrl-row"><button class="ctrl-btn" id="btnU">▲</button></div>
+            <div class="ctrl-row"><button class="ctrl-btn" id="btnL">◄</button><button class="ctrl-btn" id="btnD">▼</button><button class="ctrl-btn" id="btnR">►</button></div>
+        </div>
+        <button class="ctrl-btn" id="btnF" style="background:var(--orange);color:#fff;width:70px;height:48px;align-self:center;margin-left:12px">🔥</button>
+    </div>
+</div>
+<div class="game-footer">Tank Battle &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_tank',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=390,H=390;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest'),hLives=document.getElementById('hLives');
+const BEST_KEY='tank_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+const TILE=30,COLS=13,ROWS=13;
+const keys={up:false,down:false,left:false,right:false,fire:false};
+let grid,player,enemies,pBullets,eBullets,score,lives,state='idle',frame,base,wave;
+
+function genGrid(){
+    grid=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+    // Random walls (1=brick,2=steel)
+    for(let i=0;i<25;i++){
+        const r=1+Math.floor(Math.random()*(ROWS-3));
+        const c=Math.floor(Math.random()*COLS);
+        grid[r][c]=Math.random()<0.2?2:1;
+    }
+    // Clear player spawn & base area
+    grid[ROWS-1][Math.floor(COLS/2)]=0;grid[ROWS-2][Math.floor(COLS/2)]=0;
+    grid[ROWS-1][Math.floor(COLS/2)-1]=0;grid[ROWS-1][Math.floor(COLS/2)+1]=0;
+}
+
+function startGame(){
+    score=0;lives=3;wave=0;frame=0;
+    hScore.textContent=0;hLives.textContent=3;
+    genGrid();
+    player={x:Math.floor(COLS/2)*TILE,y:(ROWS-2)*TILE,dir:0,w:TILE-4,h:TILE-4};// dir: 0=up,1=right,2=down,3=left
+    base={x:Math.floor(COLS/2)*TILE,y:(ROWS-1)*TILE};
+    pBullets=[];eBullets=[];enemies=[];
+    spawnWave();
+    state='running';overlay.classList.add('hidden');oScore.style.display='none';
+    requestAnimationFrame(loop);
+}
+
+function spawnWave(){
+    wave++;
+    for(let i=0;i<2+wave;i++){
+        const sx=[0,Math.floor(COLS/2),COLS-1][i%3]*TILE;
+        enemies.push({x:sx,y:0,dir:2,speed:1+wave*0.1,fireCD:60+Math.floor(Math.random()*60),w:TILE-4,h:TILE-4,moveCD:0});
+    }
+}
+
+const DIRS=[[0,-1],[1,0],[0,1],[-1,0]];//up,right,down,left
+
+function canMove(x,y,w,h){
+    if(x<0||y<0||x+w>W||y+h>H)return false;
+    const c1=Math.floor(x/TILE),r1=Math.floor(y/TILE);
+    const c2=Math.floor((x+w-1)/TILE),r2=Math.floor((y+h-1)/TILE);
+    for(let r=r1;r<=r2;r++)for(let c=c1;c<=c2;c++)if(grid[r]&&grid[r][c])return false;
+    return true;
+}
+
+function update(){
+    if(state!=='running')return;
+    frame++;
+    const spd=2;
+    // Player
+    let dx=0,dy=0;
+    if(keys.up){player.dir=0;dy=-spd;}
+    else if(keys.right){player.dir=1;dx=spd;}
+    else if(keys.down){player.dir=2;dy=spd;}
+    else if(keys.left){player.dir=3;dx=-spd;}
+    if(dx||dy){if(canMove(player.x+dx,player.y+dy,player.w,player.h)){player.x+=dx;player.y+=dy;}}
+    if(keys.fire&&pBullets.length<2){
+        const d=DIRS[player.dir];
+        pBullets.push({x:player.x+player.w/2,y:player.y+player.h/2,dx:d[0]*5,dy:d[1]*5});
+        keys.fire=false;
+    }
+    
+    // Bullets
+    const processBullets=(bullets,isPlayer)=>{
+        return bullets.filter(b=>{
+            b.x+=b.dx;b.y+=b.dy;
+            if(b.x<0||b.x>W||b.y<0||b.y>H)return false;
+            const gc=Math.floor(b.x/TILE),gr=Math.floor(b.y/TILE);
+            if(gr>=0&&gr<ROWS&&gc>=0&&gc<COLS&&grid[gr][gc]){
+                if(grid[gr][gc]===1)grid[gr][gc]=0;
+                return false;
+            }
+            // Hit base?
+            if(Math.abs(b.x-base.x-TILE/2)<TILE/2&&Math.abs(b.y-base.y-TILE/2)<TILE/2){
+                state='over';endGame();return false;
+            }
+            if(isPlayer){
+                for(let i=enemies.length-1;i>=0;i--){
+                    const e=enemies[i];
+                    if(Math.abs(b.x-(e.x+e.w/2))<e.w/2&&Math.abs(b.y-(e.y+e.h/2))<e.h/2){
+                        enemies.splice(i,1);score+=200;hScore.textContent=score;return false;
+                    }
+                }
+            } else {
+                if(Math.abs(b.x-(player.x+player.w/2))<player.w/2&&Math.abs(b.y-(player.y+player.h/2))<player.h/2){
+                    lives--;hLives.textContent=lives;player.x=Math.floor(COLS/2)*TILE;player.y=(ROWS-2)*TILE;
+                    if(lives<=0){state='over';endGame();}return false;
+                }
+            }
+            return true;
+        });
+    };
+    pBullets=processBullets(pBullets,true);
+    eBullets=processBullets(eBullets,false);
+    
+    // Enemies AI
+    enemies.forEach(e=>{
+        e.fireCD--;e.moveCD--;
+        if(e.moveCD<=0){
+            e.moveCD=3;
+            const d=DIRS[e.dir];
+            const nx=e.x+d[0]*e.speed,ny=e.y+d[1]*e.speed;
+            if(canMove(nx,ny,e.w,e.h)){e.x=nx;e.y=ny;}
+            else{e.dir=Math.floor(Math.random()*4);}
+            // Face player occasionally
+            if(Math.random()<0.05){
+                const dx=player.x-e.x,dy=player.y-e.y;
+                if(Math.abs(dx)>Math.abs(dy))e.dir=dx>0?1:3;else e.dir=dy>0?2:0;
+            }
+        }
+        if(e.fireCD<=0){
+            e.fireCD=40+Math.floor(Math.random()*40);
+            const d=DIRS[e.dir];
+            eBullets.push({x:e.x+e.w/2,y:e.y+e.h/2,dx:d[0]*4,dy:d[1]*4});
+        }
+    });
+    
+    if(enemies.length===0)spawnWave();
+}
+
+function endGame(){
+    if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oScore.style.display='block';oScore.textContent='Score: '+score;
+    document.getElementById('startBtn').textContent='Play Again';
+    overlay.classList.remove('hidden');
+}
+
+function drawTank(x,y,dir,color){
+    ctx.fillStyle=color;ctx.fillRect(x+2,y+2,TILE-8,TILE-8);
+    // Barrel
+    const d=DIRS[dir];
+    ctx.fillRect(x+TILE/2-2+d[0]*10,y+TILE/2-2+d[1]*10,4+Math.abs(d[0])*8,4+Math.abs(d[1])*8);
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Grid
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+        if(grid[r][c]===1){ctx.fillStyle='#8B4513';ctx.fillRect(c*TILE,r*TILE,TILE,TILE);}
+        else if(grid[r][c]===2){ctx.fillStyle='#888';ctx.fillRect(c*TILE,r*TILE,TILE,TILE);}
+    }
+    // Base
+    ctx.fillStyle='#ffd166';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('🏠',base.x+TILE/2,base.y+TILE/2);
+    // Player
+    drawTank(player.x,player.y,player.dir,'#00e5ff');
+    // Enemies
+    enemies.forEach(e=>drawTank(e.x,e.y,e.dir,'#ff6b9d'));
+    // Bullets
+    ctx.fillStyle='#ffd166';
+    pBullets.forEach(b=>{ctx.beginPath();ctx.arc(b.x,b.y,3,0,Math.PI*2);ctx.fill();});
+    ctx.fillStyle='#ff8a47';
+    eBullets.forEach(b=>{ctx.beginPath();ctx.arc(b.x,b.y,3,0,Math.PI*2);ctx.fill();});
+    // Wave
+    ctx.fillStyle='#a99ec4';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillText('Wave '+wave,W/2,4);
+}
+
+function loop(){update();draw();if(state==='running')requestAnimationFrame(loop);}
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowUp')keys.up=true;if(e.key==='ArrowDown')keys.down=true;
+    if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true;
+    if(e.key===' ')keys.fire=true;
+});
+document.addEventListener('keyup',e=>{
+    if(e.key==='ArrowUp')keys.up=false;if(e.key==='ArrowDown')keys.down=false;
+    if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false;
+});
+const bMap={btnU:'up',btnD:'down',btnL:'left',btnR:'right',btnF:'fire'};
+Object.entries(bMap).forEach(([id,k])=>{
+    document.getElementById(id).addEventListener('touchstart',e=>{e.preventDefault();keys[k]=true;},{passive:false});
+    document.getElementById(id).addEventListener('touchend',()=>keys[k]=false);
+});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

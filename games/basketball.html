@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🏀 Basketball — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--orange);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--yellow);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--orange),var(--yellow));color:#000;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--orange),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--orange)}.hi-val{color:var(--yellow)}.st-val{color:var(--green)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#1a1333}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--orange),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--orange);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--orange),var(--yellow));color:#000;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🏀 Basketball</span></div>
+<header><h1>Basketball</h1><p>Swipe to shoot hoops!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Streak</div><div class="value st-val" id="hStreak">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="400" height="450"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Basketball</h2>
+            <div class="sub" id="oSub">Swipe/drag up to shoot the ball!<br>Aim for the hoop — streak for bonus!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Shoot!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Basketball &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_basketball',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest'),hStreak=document.getElementById('hStreak');
+const BEST_KEY='basketball_best';
+let bestScore=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=bestScore;
+
+const BALL_R=16,GRAVITY=0.25,HOOP_W=50;
+let state='idle',score,streak,ball,hoopX,hoopY,dragStart,dragging,shotsLeft,af;
+
+function resetBall(){
+    ball={x:W/2,y:H-60,vx:0,vy:0,flying:false,scored:false};
+    hoopX=60+Math.random()*(W-120);hoopY=80+Math.random()*60;
+}
+
+function startGame(){
+    score=0;streak=0;shotsLeft=10;
+    resetBall();state='running';overlay.classList.add('hidden');
+    hScore.textContent=0;hStreak.textContent=0;
+    if(af)cancelAnimationFrame(af);af=requestAnimationFrame(loop);
+}
+
+function loop(){if(state!=='running')return;update();draw();af=requestAnimationFrame(loop);}
+
+function update(){
+    if(!ball.flying)return;
+    ball.vy+=GRAVITY;ball.x+=ball.vx;ball.y+=ball.vy;
+    // Wall bounce
+    if(ball.x-BALL_R<0){ball.x=BALL_R;ball.vx*=-0.6;}
+    if(ball.x+BALL_R>W){ball.x=W-BALL_R;ball.vx*=-0.6;}
+    // Check hoop
+    if(!ball.scored&&ball.vy>0){
+        if(ball.x>hoopX-HOOP_W/2&&ball.x<hoopX+HOOP_W/2&&
+           ball.y>hoopY-5&&ball.y<hoopY+10){
+            ball.scored=true;streak++;
+            const pts=streak>=3?3:streak>=2?2:1;
+            score+=pts;hScore.textContent=score;hStreak.textContent=streak;
+        }
+    }
+    // Ball off screen
+    if(ball.y>H+50){
+        if(!ball.scored)streak=0;
+        hStreak.textContent=streak;
+        shotsLeft--;
+        if(shotsLeft<=0){endGame();return;}
+        resetBall();
+    }
+}
+
+function draw(){
+    ctx.fillStyle='#1a1333';ctx.fillRect(0,0,W,H);
+    // Backboard
+    ctx.fillStyle='#2a1f4e';ctx.fillRect(hoopX+HOOP_W/2+2,hoopY-30,6,50);
+    // Hoop
+    ctx.strokeStyle='#ff8a47';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(hoopX-HOOP_W/2,hoopY);ctx.lineTo(hoopX+HOOP_W/2,hoopY);ctx.stroke();
+    // Net lines
+    ctx.strokeStyle='rgba(255,138,71,0.3)';ctx.lineWidth=1;
+    for(let i=0;i<5;i++){
+        const x=hoopX-HOOP_W/2+i*(HOOP_W/4);
+        ctx.beginPath();ctx.moveTo(x,hoopY);ctx.lineTo(x+(i<2.5?-3:3),hoopY+25);ctx.stroke();
+    }
+    // Rim circles
+    ctx.fillStyle='#ff8a47';
+    ctx.beginPath();ctx.arc(hoopX-HOOP_W/2,hoopY,4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(hoopX+HOOP_W/2,hoopY,4,0,Math.PI*2);ctx.fill();
+    // Ball
+    ctx.fillStyle='#ff8a47';ctx.beginPath();ctx.arc(ball.x,ball.y,BALL_R,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#c06030';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(ball.x,ball.y,BALL_R,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ball.x-BALL_R,ball.y);ctx.lineTo(ball.x+BALL_R,ball.y);ctx.stroke();
+    ctx.beginPath();ctx.arc(ball.x,ball.y,BALL_R,Math.PI*0.3,Math.PI*0.7);ctx.stroke();
+    ctx.beginPath();ctx.arc(ball.x,ball.y,BALL_R,-Math.PI*0.7,-Math.PI*0.3);ctx.stroke();
+    // Drag line
+    if(dragging&&dragStart){
+        const rect=canvas.getBoundingClientRect();
+        ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(ball.x,ball.y);ctx.lineTo(ball.x,ball.y-30);ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    // Shots left
+    ctx.fillStyle='#a99ec4';ctx.font='bold 13px sans-serif';ctx.textAlign='center';
+    ctx.fillText(shotsLeft+' shots left',W/2,H-15);
+}
+
+function getPos(e){
+    const rect=canvas.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    return{x:(t.clientX-rect.left)/rect.width*W,y:(t.clientY-rect.top)/rect.height*H};
+}
+
+function onDown(e){
+    if(state!=='running'||ball.flying)return;
+    const p=getPos(e);
+    if(Math.sqrt((p.x-ball.x)**2+(p.y-ball.y)**2)<BALL_R*3){
+        dragging=true;dragStart=p;
+    }
+}
+function onMove(e){if(!dragging)return;/* visual only */}
+function onUp(e){
+    if(!dragging||!dragStart)return;
+    const p=getPos(e.changedTouches?e.changedTouches[0]:e);
+    const dx=p.x-dragStart.x,dy=p.y-dragStart.y;
+    dragging=false;
+    if(dy<-20){// Up swipe
+        ball.vx=dx*0.06;ball.vy=dy*0.12;ball.flying=true;
+    }
+    dragStart=null;
+}
+
+canvas.addEventListener('mousedown',onDown);canvas.addEventListener('mousemove',onMove);canvas.addEventListener('mouseup',onUp);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state!=='running'){startGame();return;}onDown(e);},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();onMove(e);},{passive:false});
+canvas.addEventListener('touchend',e=>{e.preventDefault();onUp(e);},{passive:false});
+
+function endGame(){
+    state='dead';if(af)cancelAnimationFrame(af);
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+    oTitle.textContent='Game Over';oSub.textContent='No shots left!';oScore.textContent='Score: '+score;oScore.style.display='block';
+    overlay.classList.remove('hidden');document.getElementById('startBtn').textContent='Retry';
+}
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

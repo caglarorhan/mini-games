@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🚁 Helicopter — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--cyan);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--green);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--cyan),var(--green));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:520px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--cyan)}.hi-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#000;cursor:pointer}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--cyan);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--cyan),var(--green));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🚁 Helicopter</span></div>
+<header><h1>Helicopter</h1><p>Hold to fly up, release to drop — avoid obstacles!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Distance</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="480" height="300"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Helicopter</h2>
+            <div class="sub" id="oSub">Hold/tap to fly up, release to fall.<br>Avoid walls and obstacles!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Helicopter &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_helicopter',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest');
+const BEST_KEY='helicopter_best';
+let bestScore=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=bestScore;
+let state='idle',score,heli,caveTop,caveBot,obstacles,holding,animFrame,speed,particles;
+
+function startGame(){
+    score=0;speed=2;holding=false;particles=[];
+    heli={x:80,y:H/2,vy:0,trail:[]};
+    caveTop=[];caveBot=[];obstacles=[];
+    let topY=20,botY=H-20;
+    for(let i=0;i<W+50;i+=4){
+        topY+=Math.random()*4-2;topY=Math.max(10,Math.min(H/2-40,topY));
+        botY+=Math.random()*4-2;botY=Math.max(H/2+40,Math.min(H-10,botY));
+        caveTop.push(topY);caveBot.push(botY);
+    }
+    state='running';overlay.classList.add('hidden');
+    if(animFrame)cancelAnimationFrame(animFrame);animFrame=requestAnimationFrame(loop);
+}
+
+function loop(){if(state!=='running')return;update();draw();animFrame=requestAnimationFrame(loop);}
+
+function update(){
+    score++;hScore.textContent=score;speed=2+score*0.002;
+    if(holding)heli.vy-=0.55;else heli.vy+=0.35;
+    heli.vy=Math.max(-5,Math.min(5,heli.vy));
+    heli.y+=heli.vy;
+    heli.trail.push({x:heli.x,y:heli.y});if(heli.trail.length>20)heli.trail.shift();
+    // Scroll cave
+    caveTop.shift();caveBot.shift();
+    const gap=Math.max(80,180-score*0.1);
+    const lastTop=caveTop[caveTop.length-1]+Math.random()*6-3;
+    const lastBot=caveBot[caveBot.length-1]+Math.random()*6-3;
+    caveTop.push(Math.max(5,Math.min(H/2-gap/2,lastTop)));
+    caveBot.push(Math.max(H/2+gap/2,Math.min(H-5,lastBot)));
+    // Obstacles
+    if(score%80===0){
+        const oy=caveTop[caveTop.length-1]+Math.random()*(caveBot[caveBot.length-1]-caveTop[caveTop.length-1]-30)+15;
+        obstacles.push({x:W+10,y:oy,w:20,h:30});
+    }
+    obstacles.forEach(o=>o.x-=speed);
+    obstacles=obstacles.filter(o=>o.x+o.w>0);
+    // Particles from exhaust
+    if(holding&&score%2===0)particles.push({x:heli.x-10,y:heli.y+Math.random()*6-3,life:15,vx:-2,vy:Math.random()*2-1});
+    particles=particles.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.life--;return p.life>0;});
+    // Collision
+    const cIdx=Math.floor(heli.x/4);
+    if(cIdx>=0&&cIdx<caveTop.length){
+        if(heli.y-8<=caveTop[cIdx]||heli.y+8>=caveBot[cIdx])endGame();
+    }
+    obstacles.forEach(o=>{
+        if(heli.x+10>o.x&&heli.x-10<o.x+o.w&&heli.y+8>o.y&&heli.y-8<o.y+o.h)endGame();
+    });
+    if(heli.y<0||heli.y>H)endGame();
+}
+
+function draw(){
+    ctx.fillStyle='#0a0618';ctx.fillRect(0,0,W,H);
+    // Cave walls
+    ctx.fillStyle='#1a1333';
+    ctx.beginPath();ctx.moveTo(0,0);caveTop.forEach((y,i)=>ctx.lineTo(i*4,y));ctx.lineTo(W,0);ctx.fill();
+    ctx.beginPath();ctx.moveTo(0,H);caveBot.forEach((y,i)=>ctx.lineTo(i*4,y));ctx.lineTo(W,H);ctx.fill();
+    // Wall edges
+    ctx.strokeStyle='rgba(0,229,255,0.3)';ctx.lineWidth=1;
+    ctx.beginPath();caveTop.forEach((y,i)=>{i?ctx.lineTo(i*4,y):ctx.moveTo(0,y);});ctx.stroke();
+    ctx.beginPath();caveBot.forEach((y,i)=>{i?ctx.lineTo(i*4,y):ctx.moveTo(0,y);});ctx.stroke();
+    // Obstacles
+    ctx.fillStyle='#ff6b9d';obstacles.forEach(o=>ctx.fillRect(o.x,o.y,o.w,o.h));
+    // Particles
+    particles.forEach(p=>{ctx.globalAlpha=p.life/15;ctx.fillStyle='#ff8a47';ctx.fillRect(p.x,p.y,3,3);});ctx.globalAlpha=1;
+    // Trail
+    ctx.strokeStyle='rgba(0,229,255,0.2)';ctx.lineWidth=2;ctx.beginPath();
+    heli.trail.forEach((t,i)=>{i?ctx.lineTo(t.x,t.y):ctx.moveTo(t.x,t.y);});ctx.stroke();
+    // Helicopter
+    ctx.fillStyle='#00e5ff';ctx.beginPath();ctx.arc(heli.x,heli.y,8,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#06d6a0';ctx.fillRect(heli.x-12,heli.y-2,6,4);
+    ctx.fillRect(heli.x+4,heli.y-6,10,2);
+}
+
+function endGame(){
+    state='dead';if(animFrame)cancelAnimationFrame(animFrame);
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+    oTitle.textContent='Crashed!';oSub.textContent='';oScore.textContent='Distance: '+score;oScore.style.display='block';overlay.classList.remove('hidden');
+}
+
+function setHold(v){if(state==='running')holding=v;}
+canvas.addEventListener('mousedown',()=>setHold(true));canvas.addEventListener('mouseup',()=>setHold(false));
+canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state!=='running')startGame();setHold(true);},{passive:false});
+canvas.addEventListener('touchend',e=>{e.preventDefault();setHold(false);},{passive:false});
+document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();if(state!=='running')startGame();setHold(true);}});
+document.addEventListener('keyup',e=>{if(e.code==='Space')setHold(false);});
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

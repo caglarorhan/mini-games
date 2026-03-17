@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🎸 Guitar Hero — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--pink);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--purple);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:380px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--pink)}.hi-val{color:var(--yellow)}.c-val{color:var(--green)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--pink);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.hit-buttons{display:flex;justify-content:center;gap:4px;margin-top:10px}
+.hit-btn{flex:1;max-width:70px;height:56px;border-radius:12px;border:2px solid;font-size:1.2rem;font-weight:900;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🎸 Guitar Hero</span></div>
+<header><h1>Guitar Hero</h1><p>Hit the notes as they reach the line!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+        <div class="hud-box"><div class="label">Combo</div><div class="value c-val" id="hCombo">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="340" height="500"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🎸 Guitar Hero</h2>
+            <div class="sub">Press D/F/J/K or tap buttons<br>when notes hit the line!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Rock!</button>
+        </div>
+    </div>
+    <div class="hit-buttons">
+        <button class="hit-btn" id="btn0" style="background:#ff6b9d22;border-color:#ff6b9d;color:#ff6b9d">D</button>
+        <button class="hit-btn" id="btn1" style="background:#06d6a022;border-color:#06d6a0;color:#06d6a0">F</button>
+        <button class="hit-btn" id="btn2" style="background:#ffd16622;border-color:#ffd166;color:#ffd166">J</button>
+        <button class="hit-btn" id="btn3" style="background:#00e5ff22;border-color:#00e5ff;color:#00e5ff">K</button>
+    </div>
+</div>
+<div class="game-footer">Guitar Hero &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_guitarhero',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=340,H=500;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest'),hCombo=document.getElementById('hCombo');
+const BEST_KEY='guitarhero_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+const LANES=4,LANE_W=W/LANES;
+const HIT_Y=H-80;
+const COLORS=['#ff6b9d','#06d6a0','#ffd166','#00e5ff'];
+const KEY_MAP={d:0,f:1,j:2,k:3};
+let notes,score,combo,maxCombo,state='idle',frame,speed,spawnCD,flashes;
+
+function startGame(){
+    notes=[];score=0;combo=0;maxCombo=0;frame=0;speed=3;spawnCD=0;flashes=[0,0,0,0];
+    hScore.textContent=0;hCombo.textContent=0;
+    state='running';overlay.classList.add('hidden');oScore.style.display='none';
+    requestAnimationFrame(loop);
+}
+
+function spawnNote(){
+    const lane=Math.floor(Math.random()*LANES);
+    notes.push({lane,y:-20,hit:false,missed:false});
+}
+
+function hitLane(lane){
+    if(state!=='running')return;
+    flashes[lane]=6;
+    // Find closest hittable note in lane
+    let closest=null,closestDist=Infinity;
+    notes.forEach(n=>{
+        if(n.lane===lane&&!n.hit&&!n.missed){
+            const dist=Math.abs(n.y-HIT_Y);
+            if(dist<40&&dist<closestDist){closest=n;closestDist=dist;}
+        }
+    });
+    if(closest){
+        closest.hit=true;
+        const pts=closestDist<15?100:closestDist<25?50:25;
+        score+=pts*(1+Math.floor(combo/10));hScore.textContent=score;
+        combo++;if(combo>maxCombo)maxCombo=combo;hCombo.textContent=combo;
+    } else {
+        combo=0;hCombo.textContent=0;
+    }
+}
+
+function update(){
+    if(state!=='running')return;
+    frame++;
+    spawnCD--;
+    if(spawnCD<=0){spawnNote();spawnCD=18+Math.floor(Math.random()*12);if(Math.random()<0.3)spawnNote();}
+    speed=3+frame*0.001;
+    
+    notes.forEach(n=>{if(!n.hit)n.y+=speed;});
+    notes=notes.filter(n=>{
+        if(n.hit)return false;
+        if(n.y>HIT_Y+50&&!n.missed){n.missed=true;combo=0;hCombo.textContent=0;}
+        return n.y<H+20;
+    });
+    
+    flashes=flashes.map(f=>Math.max(0,f-1));
+    
+    // End after ~60 seconds
+    if(frame>3600){
+        state='over';
+        if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+        oScore.style.display='block';oScore.textContent='Score: '+score+' | Max Combo: '+maxCombo;
+        document.getElementById('startBtn').textContent='Play Again';
+        overlay.classList.remove('hidden');
+    }
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Lane lines
+    for(let i=1;i<LANES;i++){
+        ctx.strokeStyle='#1a1a3a';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(i*LANE_W,0);ctx.lineTo(i*LANE_W,H);ctx.stroke();
+    }
+    // Hit line
+    ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(0,HIT_Y-20,W,40);
+    ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(0,HIT_Y);ctx.lineTo(W,HIT_Y);ctx.stroke();
+    
+    // Notes
+    notes.forEach(n=>{
+        if(n.hit)return;
+        const x=n.lane*LANE_W;
+        ctx.fillStyle=n.missed?'#333':COLORS[n.lane];
+        ctx.beginPath();
+        ctx.roundRect(x+8,n.y-12,LANE_W-16,24,8);
+        ctx.fill();
+    });
+    
+    // Flash
+    flashes.forEach((f,i)=>{
+        if(f>0){
+            ctx.fillStyle=COLORS[i]+'44';
+            ctx.fillRect(i*LANE_W,HIT_Y-30,LANE_W,60);
+        }
+    });
+    
+    // Hit zone buttons
+    for(let i=0;i<LANES;i++){
+        ctx.strokeStyle=COLORS[i]+'66';ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(i*LANE_W+LANE_W/2,HIT_Y,16,0,Math.PI*2);ctx.stroke();
+    }
+    
+    // Combo
+    if(combo>=5){
+        ctx.fillStyle='#ffd166';ctx.font='bold 16px sans-serif';ctx.textAlign='center';
+        ctx.fillText(combo+'x COMBO!',W/2,HIT_Y+50);
+    }
+}
+
+function loop(){update();draw();if(state==='running')requestAnimationFrame(loop);}
+
+document.addEventListener('keydown',e=>{
+    const lane=KEY_MAP[e.key.toLowerCase()];
+    if(lane!==undefined)hitLane(lane);
+});
+for(let i=0;i<4;i++){
+    document.getElementById('btn'+i).addEventListener('touchstart',e=>{e.preventDefault();hitLane(i);},{passive:false});
+    document.getElementById('btn'+i).addEventListener('mousedown',e=>{hitLane(i);});
+}
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

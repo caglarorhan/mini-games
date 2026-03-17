@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>△ Geometry Dash — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--cyan);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--pink);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--cyan),var(--pink));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:520px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--cyan)}.hi-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#000;cursor:pointer}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--cyan);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--cyan),var(--pink));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">△ Geometry Dash</span></div>
+<header><h1>Geometry Dash</h1><p>Tap to jump — rhythm and reflexes!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="480" height="280"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Geometry Dash</h2>
+            <div class="sub" id="oSub">Tap/click to jump over obstacles!<br>Time your jumps perfectly!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Geometry Dash &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_geodash',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest');
+const BEST_KEY='geodash_best';
+let bestScore=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=bestScore;
+const GROUND=H-40,PW=28,GRAVITY=0.6,JUMP=-10.5,SPEED=5;
+let state='idle',player,obstacles,particles,score,scrollX,animFrame,bgStars;
+
+function startGame(){
+    player={x:80,y:GROUND-PW,vy:0,grounded:true,rot:0};
+    obstacles=[];particles=[];score=0;scrollX=0;
+    bgStars=Array.from({length:30},()=>({x:Math.random()*W,y:Math.random()*(GROUND-20),s:Math.random()*2+0.5}));
+    spawnBatch();
+    state='running';overlay.classList.add('hidden');hScore.textContent=0;
+    if(animFrame)cancelAnimationFrame(animFrame);animFrame=requestAnimationFrame(loop);
+}
+
+function spawnBatch(){
+    const lastX=obstacles.length?Math.max(...obstacles.map(o=>o.x)):W;
+    for(let i=0;i<5;i++){
+        const x=lastX+200+Math.random()*150;
+        const rnd=Math.random();
+        if(rnd<0.4)obstacles.push({x,y:GROUND-30,w:25,h:30,type:'spike'});
+        else if(rnd<0.7){obstacles.push({x,y:GROUND-30,w:30,h:30,type:'block'});if(Math.random()>0.5)obstacles.push({x,y:GROUND-60,w:30,h:30,type:'block'});}
+        else obstacles.push({x,y:GROUND-50,w:25,h:50,type:'spike'});
+    }
+}
+
+function jump(){
+    if(state!=='running')return;
+    if(player.grounded){player.vy=JUMP;player.grounded=false;}
+}
+
+function loop(){if(state!=='running')return;update();draw();animFrame=requestAnimationFrame(loop);}
+
+function update(){
+    scrollX+=SPEED;score=Math.floor(scrollX/50);hScore.textContent=score;
+    // Player physics
+    player.vy+=GRAVITY;player.y+=player.vy;
+    if(player.y>=GROUND-PW){player.y=GROUND-PW;player.vy=0;player.grounded=true;player.rot=Math.round(player.rot/(Math.PI/2))*(Math.PI/2);}
+    if(!player.grounded)player.rot+=0.12;
+    // Stars parallax
+    bgStars.forEach(s=>{s.x-=SPEED*0.2;if(s.x<-5)s.x=W+5;});
+    // Collision
+    obstacles.forEach(o=>{
+        const ox=o.x-scrollX;
+        if(player.x+PW-4>ox&&player.x+4<ox+o.w&&player.y+PW-4>o.y&&player.y+4<o.y+o.h){
+            endGame();
+        }
+        if(!o.passed&&ox+o.w<player.x){o.passed=true;}
+    });
+    // Spawn more
+    const maxOx=Math.max(...obstacles.map(o=>o.x));
+    if(maxOx-scrollX<W+200)spawnBatch();
+    obstacles=obstacles.filter(o=>o.x-scrollX>-100);
+    // Particles
+    if(player.grounded&&score%2===0)particles.push({x:player.x,y:GROUND,vx:-SPEED+Math.random()*-2,vy:-Math.random()*2,life:15});
+    particles=particles.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.life--;return p.life>0;});
+}
+
+function draw(){
+    // BG
+    const grad=ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'#0a0618');grad.addColorStop(0.7,'#1a0a3e');grad.addColorStop(1,'#0a0618');
+    ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+    // Stars
+    ctx.fillStyle='rgba(255,255,255,0.4)';bgStars.forEach(s=>ctx.fillRect(s.x,s.y,s.s,s.s));
+    // Ground
+    ctx.fillStyle='#1a1333';ctx.fillRect(0,GROUND,W,H-GROUND);
+    ctx.strokeStyle='#00e5ff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,GROUND);ctx.lineTo(W,GROUND);ctx.stroke();
+    // Grid lines on ground
+    ctx.strokeStyle='rgba(0,229,255,0.1)';ctx.lineWidth=1;
+    for(let gx=(-scrollX%40);gx<W;gx+=40){ctx.beginPath();ctx.moveTo(gx,GROUND);ctx.lineTo(gx,H);ctx.stroke();}
+    // Obstacles
+    obstacles.forEach(o=>{
+        const ox=o.x-scrollX;
+        if(o.type==='spike'){
+            ctx.fillStyle='#ff6b9d';ctx.beginPath();ctx.moveTo(ox+o.w/2,o.y);ctx.lineTo(ox+o.w,o.y+o.h);ctx.lineTo(ox,o.y+o.h);ctx.fill();
+        } else {
+            ctx.fillStyle='#a855f7';ctx.fillRect(ox,o.y,o.w,o.h);ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.strokeRect(ox,o.y,o.w,o.h);
+        }
+    });
+    // Particles
+    particles.forEach(p=>{ctx.globalAlpha=p.life/15;ctx.fillStyle='#00e5ff';ctx.fillRect(p.x,p.y,3,3);});
+    ctx.globalAlpha=1;
+    // Player (rotating square)
+    ctx.save();ctx.translate(player.x+PW/2,player.y+PW/2);ctx.rotate(player.rot);
+    ctx.fillStyle='#00e5ff';ctx.fillRect(-PW/2,-PW/2,PW,PW);
+    ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=2;ctx.strokeRect(-PW/2,-PW/2,PW,PW);
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.fillRect(-PW/2+4,-PW/2+4,PW/3,PW/3);
+    ctx.restore();
+}
+
+function endGame(){
+    state='dead';if(animFrame)cancelAnimationFrame(animFrame);
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+    oTitle.textContent='Crashed!';oSub.textContent='';oScore.textContent='Score: '+score;oScore.style.display='block';overlay.classList.remove('hidden');
+}
+
+canvas.addEventListener('click',()=>{if(state!=='running')startGame();else jump();});
+canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state!=='running')startGame();else jump();},{passive:false});
+document.addEventListener('keydown',e=>{if(e.code==='Space'||e.key==='ArrowUp'){e.preventDefault();if(state!=='running')startGame();else jump();}});
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

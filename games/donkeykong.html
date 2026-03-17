@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🦍 Donkey Kong — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--deep-purple:#7c3aed;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--orange);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--pink);bottom:-80px;right:-80px}
+.bg-blob:nth-child(3){width:300px;height:300px;background:var(--yellow);top:50%;left:50%;transform:translate(-50%,-50%)}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:6px;transition:color .2s}
+.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--orange),var(--pink));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--orange),var(--pink),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:500px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;min-width:70px;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--orange)}.lv-val{color:var(--cyan)}.li-val{color:var(--pink)}.hi-val{color:var(--green)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);box-shadow:0 0 30px rgba(255,138,71,.12);background:#000}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;transition:opacity .3s}
+.overlay.hidden{opacity:0;pointer-events:none}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--orange),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--orange);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--orange),var(--pink));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer;transition:transform .15s}
+.start-btn:hover{transform:translateY(-2px)}
+.mobile-controls{display:none;margin-top:12px;gap:10px;justify-content:center;flex-wrap:wrap;user-select:none;-webkit-user-select:none}
+.mob-btn{background:linear-gradient(135deg,var(--deep-purple),var(--purple));color:#fff;border:none;padding:16px 24px;border-radius:14px;font-size:1rem;font-weight:800;cursor:pointer;touch-action:manipulation}
+.mob-btn:active{transform:scale(.93)}
+@media(max-width:768px){.mobile-controls{display:flex}}
+@media(max-width:500px){header h1{font-size:1.5rem}.hud-box{padding:6px 8px}.hud-box .value{font-size:1rem}}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar">
+    <a href="../index.html" class="back-link">&#8592; Back to Games</a>
+    <span class="game-badge">🦍 Donkey Kong</span>
+</div>
+<header><h1>Donkey Kong</h1><p>Climb girders, jump barrels, rescue the princess!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Level</div><div class="value lv-val" id="hLevel">1</div></div>
+        <div class="hud-box"><div class="label">Lives</div><div class="value li-val" id="hLives">3</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="400" height="500"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Donkey Kong</h2>
+            <div class="sub" id="oSub">Move with arrows, jump with Space!<br>Dodge barrels, climb ladders!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+    <div class="mobile-controls">
+        <button class="mob-btn" id="btnL">◄</button>
+        <button class="mob-btn" id="btnU">▲ Up</button>
+        <button class="mob-btn" id="btnD">▼ Down</button>
+        <button class="mob-btn" id="btnJ">Jump</button>
+        <button class="mob-btn" id="btnR">►</button>
+    </div>
+</div>
+<div class="game-footer">Donkey Kong &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_donkeykong',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hLevel=document.getElementById('hLevel'),hLives=document.getElementById('hLives'),hBest=document.getElementById('hBest');
+const BEST_KEY='donkeykong_best';
+let bestScore=+localStorage.getItem(BEST_KEY)||0;
+hBest.textContent=bestScore;
+
+const GRAVITY=0.5,JUMP_FORCE=-9,PLAYER_W=20,PLAYER_H=28;
+let state='idle',score,lives,level,player,barrels,platforms,ladders,animFrame;
+let keys={},mobActions={left:false,right:false,up:false,down:false,jump:false};
+
+// Build platforms (girders) - they slope slightly
+function buildLevel(){
+    platforms=[];ladders=[];
+    const numFloors=6;
+    const floorH=H/numFloors;
+    for(let i=0;i<numFloors;i++){
+        const y=H-20-i*floorH;
+        const slope=i%2===0?-1:1;
+        const x1=i===0?0:30;
+        const x2=i===0?W:W-30;
+        // Platform as a sloped line represented as rect segments
+        for(let s=0;s<10;s++){
+            const px=x1+s*(x2-x1)/10;
+            const py=y+slope*s*2;
+            platforms.push({x:px,y:py,w:(x2-x1)/10+2,h:8,floor:i});
+        }
+        // Ladders between floors
+        if(i<numFloors-1){
+            const lx=i%2===0?W-80:60;
+            const ly=y-floorH+10;
+            ladders.push({x:lx,y:ly,w:20,h:floorH-10,floor:i});
+            // Extra ladder
+            if(level>1&&i>0){
+                const lx2=i%2===0?120:W-120;
+                ladders.push({x:lx2,y:ly,w:20,h:floorH-10,floor:i});
+            }
+        }
+    }
+}
+
+function getFloorY(x,floor){
+    const ps=platforms.filter(p=>p.floor===floor);
+    for(const p of ps){
+        if(x>=p.x&&x<=p.x+p.w)return p.y;
+    }
+    return ps.length?ps[0].y:H-20;
+}
+
+function resetPlayer(){
+    player={x:40,y:H-48,vx:0,vy:0,grounded:false,onLadder:false,jumping:false,facing:1};
+}
+
+function startGame(){
+    if(state==='running')return;
+    score=0;lives=3;level=1;
+    buildLevel();resetPlayer();barrels=[];
+    state='running';overlay.classList.add('hidden');updateHUD();
+    if(animFrame)cancelAnimationFrame(animFrame);
+    barrelTimer=0;
+    animFrame=requestAnimationFrame(loop);
+}
+
+function updateHUD(){
+    hScore.textContent=score;hLevel.textContent=level;hLives.textContent=lives;
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+}
+
+let barrelTimer=0;
+
+function loop(){
+    if(state!=='running')return;
+    update();draw();animFrame=requestAnimationFrame(loop);
+}
+
+function update(){
+    const spd=3;
+    // Input
+    if(keys['ArrowLeft']||mobActions.left){player.vx=-spd;player.facing=-1;}
+    else if(keys['ArrowRight']||mobActions.right){player.vx=spd;player.facing=1;}
+    else player.vx=0;
+
+    // Ladder
+    let onLadder=false;
+    ladders.forEach(l=>{
+        if(player.x+PLAYER_W/2>l.x&&player.x+PLAYER_W/2<l.x+l.w&&player.y+PLAYER_H>l.y&&player.y<l.y+l.h){
+            onLadder=true;
+        }
+    });
+
+    if(onLadder&&(keys['ArrowUp']||mobActions.up)){player.vy=-2.5;player.onLadder=true;}
+    else if(onLadder&&(keys['ArrowDown']||mobActions.down)){player.vy=2.5;player.onLadder=true;}
+    else if(player.onLadder&&!onLadder){player.onLadder=false;}
+
+    if(!player.onLadder){
+        player.vy+=GRAVITY;
+        if((keys['Space']||mobActions.jump)&&player.grounded){player.vy=JUMP_FORCE;player.grounded=false;player.jumping=true;}
+    }
+
+    player.x+=player.vx;player.y+=player.vy;
+    player.x=Math.max(0,Math.min(W-PLAYER_W,player.x));
+
+    // Platform collision
+    player.grounded=false;
+    platforms.forEach(p=>{
+        if(player.vy>=0&&player.y+PLAYER_H>=p.y&&player.y+PLAYER_H<=p.y+p.h+10&&player.x+PLAYER_W>p.x&&player.x<p.x+p.w){
+            player.y=p.y-PLAYER_H;player.vy=0;player.grounded=true;player.jumping=false;
+        }
+    });
+
+    if(player.y>H){die();return;}
+
+    // Check if reached top (princess area)
+    if(player.y<60){
+        score+=500;level++;buildLevel();resetPlayer();barrels=[];updateHUD();
+    }
+
+    // Barrels
+    barrelTimer++;
+    if(barrelTimer>=Math.max(30,80-level*5)){
+        barrelTimer=0;
+        barrels.push({x:60,y:40,vx:2+level*0.3,vy:0,floor:5,grounded:false});
+    }
+
+    barrels.forEach(b=>{
+        b.vy+=GRAVITY*0.7;
+        b.x+=b.vx;b.y+=b.vy;
+        // Platform collision for barrels
+        platforms.forEach(p=>{
+            if(b.vy>=0&&b.y+16>=p.y&&b.y+16<=p.y+20&&b.x+16>p.x&&b.x<p.x+p.w){
+                b.y=p.y-16;b.vy=0;b.grounded=true;
+            }
+        });
+        // Bounce off walls
+        if(b.x<0||b.x>W-16){b.vx*=-1;}
+        // Use ladders sometimes
+        if(b.grounded&&Math.random()<0.015){
+            ladders.forEach(l=>{
+                if(Math.abs(b.x-l.x)<20&&b.y<l.y+l.h&&b.y>l.y){
+                    b.vy=2;b.grounded=false;
+                }
+            });
+        }
+        // Collision with player
+        if(b.x+16>player.x&&b.x<player.x+PLAYER_W&&b.y+16>player.y&&b.y<player.y+PLAYER_H){
+            die();
+        }
+        // Jumped over barrel
+        if(player.jumping&&player.y<b.y-10&&Math.abs(player.x-b.x)<30&&!b.scored){
+            b.scored=true;score+=100;updateHUD();
+        }
+    });
+    barrels=barrels.filter(b=>b.y<H+50);
+}
+
+function die(){
+    lives--;updateHUD();
+    if(lives<=0){endGame();return;}
+    resetPlayer();barrels=[];
+}
+
+function draw(){
+    ctx.fillStyle='#0a0618';ctx.fillRect(0,0,W,H);
+    // Platforms (girders)
+    platforms.forEach(p=>{
+        ctx.fillStyle='#d4534a';ctx.fillRect(p.x,p.y,p.w,p.h);
+        ctx.fillStyle='#ff7b6b';ctx.fillRect(p.x,p.y,p.w,3);
+    });
+    // Ladders
+    ctx.strokeStyle='#6fd8f7';ctx.lineWidth=2;
+    ladders.forEach(l=>{
+        ctx.strokeRect(l.x,l.y,l.w,l.h);
+        const rungs=Math.floor(l.h/12);
+        for(let i=0;i<rungs;i++){
+            const ry=l.y+i*12;
+            ctx.beginPath();ctx.moveTo(l.x,ry);ctx.lineTo(l.x+l.w,ry);ctx.stroke();
+        }
+    });
+    // DK (top)
+    ctx.fillStyle='#8B4513';
+    ctx.fillRect(40,20,40,40);ctx.fillStyle='#A0522D';
+    ctx.fillRect(44,24,32,32);
+    ctx.fillStyle='#fff';ctx.fillRect(50,30,6,6);ctx.fillRect(62,30,6,6);
+    ctx.fillStyle='#000';ctx.fillRect(52,32,3,3);ctx.fillRect(64,32,3,3);
+    ctx.fillStyle='#8B4513';ctx.fillRect(54,42,10,4);
+    // Princess (top right)
+    ctx.fillStyle='#ff69b4';ctx.fillRect(W-80,10,16,24);
+    ctx.fillStyle='#ffd166';ctx.fillRect(W-82,6,20,8);
+    ctx.font='12px sans-serif';ctx.fillText('HELP!',W-95,6);
+    // Player
+    ctx.fillStyle=player.onLadder?'#00e5ff':'#ff4444';
+    ctx.fillRect(player.x,player.y,PLAYER_W,PLAYER_H);
+    // Head
+    ctx.fillStyle='#ffdab9';ctx.fillRect(player.x+3,player.y-4,PLAYER_W-6,10);
+    // Hat
+    ctx.fillStyle='#ff4444';ctx.fillRect(player.x+1,player.y-7,PLAYER_W-2,5);
+    // Barrels
+    barrels.forEach(b=>{
+        ctx.fillStyle='#8B4513';ctx.beginPath();ctx.arc(b.x+8,b.y+8,10,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#555';ctx.lineWidth=2;ctx.beginPath();ctx.arc(b.x+8,b.y+8,10,0,Math.PI*2);ctx.stroke();
+        ctx.strokeStyle='#A0522D';ctx.beginPath();ctx.moveTo(b.x+8,b.y-2);ctx.lineTo(b.x+8,b.y+18);ctx.stroke();
+    });
+    // Lives
+    for(let i=0;i<lives-1;i++){ctx.fillStyle='#ff4444';ctx.fillRect(10+i*20,H-16,12,14);}
+}
+
+function endGame(){
+    state='dead';if(animFrame)cancelAnimationFrame(animFrame);
+    oTitle.textContent='Game Over';oSub.textContent='The ape wins this time...';oScore.textContent='Score: '+score;oScore.style.display='block';overlay.classList.remove('hidden');
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+}
+
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='Space'&&state!=='running')startGame();});
+document.addEventListener('keyup',e=>{keys[e.code]=false;});
+document.getElementById('startBtn').addEventListener('click',startGame);
+const btns={L:'left',R:'right',U:'up',D:'down',J:'jump'};
+Object.entries(btns).forEach(([id,action])=>{
+    const btn=document.getElementById('btn'+id);
+    btn.addEventListener('touchstart',e=>{e.preventDefault();mobActions[action]=true;if(action==='jump'&&state!=='running')startGame();});
+    btn.addEventListener('touchend',()=>{mobActions[action]=false;});
+    btn.addEventListener('mousedown',()=>{mobActions[action]=true;});
+    btn.addEventListener('mouseup',()=>{mobActions[action]=false;});
+});
+draw();
+})();
+</script>
+</body>
+</html>

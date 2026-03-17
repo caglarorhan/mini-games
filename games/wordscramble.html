@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🔤 Word Scramble — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--yellow);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--green);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--yellow),var(--green));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--yellow),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px;color:var(--yellow)}
+.game-area{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a;padding:24px;min-height:380px;text-align:center}
+.scrambled{font-size:2.2rem;font-weight:900;letter-spacing:8px;color:var(--cyan);margin:20px 0;min-height:50px}
+.hint-text{color:var(--text-muted);font-size:.85rem;margin-bottom:16px;min-height:20px}
+.answer-input{width:100%;max-width:260px;padding:14px 18px;font-size:1.2rem;border:2px solid var(--border);border-radius:12px;background:var(--bg-card);color:var(--text-light);text-align:center;letter-spacing:4px;text-transform:uppercase;outline:none}
+.answer-input:focus{border-color:var(--cyan)}
+.submit-btn{margin-top:12px;background:linear-gradient(135deg,var(--yellow),var(--green));color:#fff;border:none;padding:12px 40px;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer}
+.skip-btn{margin-top:8px;background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 24px;border-radius:10px;font-size:.85rem;cursor:pointer}
+.feedback{font-size:1rem;font-weight:700;margin-top:14px;min-height:30px}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final{color:var(--yellow);font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--yellow),var(--green));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🔤 Word Scramble</span></div>
+<header><h1>Word Scramble</h1><p>Unscramble the letters!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Round</div><div class="value" id="hRound">0/10</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value" id="hBest">0</div></div>
+    </div>
+    <div class="game-area">
+        <div class="scrambled" id="scrambled"></div>
+        <div class="hint-text" id="hint"></div>
+        <input type="text" class="answer-input" id="answer" placeholder="YOUR ANSWER" maxlength="20" autocomplete="off" autocapitalize="characters">
+        <br>
+        <button class="submit-btn" id="submitBtn">Submit</button>
+        <br>
+        <button class="skip-btn" id="skipBtn">Skip →</button>
+        <div class="feedback" id="feedback"></div>
+        <div class="overlay" id="overlay">
+            <h2>🔤 Word Scramble</h2>
+            <div class="sub">Unscramble the letters to find the hidden word. 10 rounds!</div>
+            <div class="final" id="oFinal" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Word Scramble &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_wordscramble',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const WORDS=[
+    {word:'PLANET',hint:'Orbits a star'},
+    {word:'GUITAR',hint:'Musical instrument with strings'},
+    {word:'BRIDGE',hint:'Crosses a river'},
+    {word:'FOREST',hint:'Full of trees'},
+    {word:'ROCKET',hint:'Goes to space'},
+    {word:'CASTLE',hint:'Medieval fortress'},
+    {word:'PIRATE',hint:'Sails the seas'},
+    {word:'DRAGON',hint:'Mythical fire breather'},
+    {word:'GARDEN',hint:'Where flowers grow'},
+    {word:'WINDOW',hint:'See through it'},
+    {word:'MONKEY',hint:'Lives in trees'},
+    {word:'DESERT',hint:'Very hot and sandy'},
+    {word:'ISLAND',hint:'Surrounded by water'},
+    {word:'FROZEN',hint:'Covered in ice'},
+    {word:'SILVER',hint:'Precious metal'},
+    {word:'JUNGLE',hint:'Dense tropical area'},
+    {word:'TROPHY',hint:'Prize for winning'},
+    {word:'WINTER',hint:'Cold season'},
+    {word:'SPIDER',hint:'Eight legs'},
+    {word:'SUNSET',hint:'End of day sky'},
+    {word:'PUZZLE',hint:'Solve it piece by piece'},
+    {word:'CAMERA',hint:'Takes photos'},
+    {word:'BATTLE',hint:'A fight or conflict'},
+    {word:'CANDLE',hint:'Burns with a flame'},
+    {word:'MAGNET',hint:'Attracts metal'},
+    {word:'BASKET',hint:'Carry things in it'},
+    {word:'TUNNEL',hint:'Dug underground'},
+    {word:'VOYAGE',hint:'A long journey'},
+    {word:'ANCHOR',hint:'Holds a ship'},
+    {word:'FALCON',hint:'Fast bird of prey'}
+];
+const overlay=document.getElementById('overlay'),oFinal=document.getElementById('oFinal');
+const hScore=document.getElementById('hScore'),hRound=document.getElementById('hRound'),hBest=document.getElementById('hBest');
+const scrambledEl=document.getElementById('scrambled'),hintEl=document.getElementById('hint');
+const answerEl=document.getElementById('answer'),feedbackEl=document.getElementById('feedback');
+const BEST_KEY='wordscramble_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+const ROUNDS=10;
+let score,round,current,usedWords,fbTimer;
+
+function shuffle(str){
+    const a=str.split('');
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    const result=a.join('');
+    return result===str?shuffle(str):result;
+}
+
+function start(){
+    score=0;round=0;usedWords=[];fbTimer=null;
+    hScore.textContent=0;
+    overlay.classList.add('hidden');oFinal.style.display='none';
+    nextWord();
+}
+
+function nextWord(){
+    round++;
+    if(round>ROUNDS){endGame();return;}
+    hRound.textContent=round+'/'+ROUNDS;
+    // Pick random unused word
+    let pool=WORDS.filter(w=>!usedWords.includes(w.word));
+    if(pool.length===0){usedWords=[];pool=WORDS;}
+    const pick=pool[Math.floor(Math.random()*pool.length)];
+    current=pick;usedWords.push(pick.word);
+    scrambledEl.textContent=shuffle(pick.word);
+    hintEl.textContent='Hint: '+pick.hint;
+    answerEl.value='';feedbackEl.textContent='';
+    answerEl.focus();
+}
+
+function submit(){
+    const guess=answerEl.value.trim().toUpperCase();
+    if(!guess)return;
+    if(guess===current.word){
+        score+=10;hScore.textContent=score;
+        feedbackEl.style.color='var(--green)';feedbackEl.textContent='✓ Correct!';
+        setTimeout(nextWord,800);
+    }else{
+        feedbackEl.style.color='var(--pink)';feedbackEl.textContent='✗ Try again!';
+        answerEl.value='';answerEl.focus();
+    }
+}
+
+function skip(){
+    feedbackEl.style.color='var(--text-muted)';
+    feedbackEl.textContent='Answer: '+current.word;
+    setTimeout(nextWord,1200);
+}
+
+function endGame(){
+    if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oFinal.style.display='block';oFinal.textContent='Score: '+score+'/'+ROUNDS*10;
+    document.getElementById('startBtn').textContent='Play Again';overlay.classList.remove('hidden');
+}
+
+document.getElementById('submitBtn').addEventListener('click',submit);
+document.getElementById('skipBtn').addEventListener('click',skip);
+answerEl.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
+document.getElementById('startBtn').addEventListener('click',start);
+})();
+</script>
+</body>
+</html>

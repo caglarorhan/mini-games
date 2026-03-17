@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🥊 Boxing — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--pink);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--orange);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--pink),var(--orange));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.p-val{color:var(--cyan)}.e-val{color:var(--pink)}.h-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--pink);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--pink),var(--orange));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.controls{display:none;gap:8px;margin-top:12px;justify-content:center;flex-wrap:wrap}
+@media(max-width:768px){.controls{display:flex}}
+.ctrl-btn{width:56px;height:56px;border:none;border-radius:14px;font-size:1.3rem;font-weight:700;cursor:pointer;background:var(--bg-card);color:var(--text-light);border:1px solid var(--border)}
+.ctrl-btn.punch{background:linear-gradient(135deg,var(--pink),var(--orange));color:#fff;width:70px;font-size:.75rem}
+.ctrl-btn.block{background:var(--bg-card);border-color:var(--cyan);color:var(--cyan);width:70px;font-size:.75rem}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🥊 Boxing</span></div>
+<header><h1>Boxing</h1><p>Punch and dodge to win the fight!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Your HP</div><div class="value p-val" id="hPHP">100</div></div>
+        <div class="hud-box"><div class="label">Enemy HP</div><div class="value e-val" id="hEHP">100</div></div>
+        <div class="hud-box"><div class="label">Wins</div><div class="value h-val" id="hWins">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="400" height="350"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🥊 Boxing</h2>
+            <div class="sub">Punch: J/K or buttons. Block: Space.<br>Dodge left/right with A/D!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Fight!</button>
+        </div>
+    </div>
+    <div class="controls">
+        <button class="ctrl-btn" data-act="left">◄</button>
+        <button class="ctrl-btn block" data-act="block">BLOCK</button>
+        <button class="ctrl-btn punch" data-act="jab">JAB</button>
+        <button class="ctrl-btn punch" data-act="hook">HOOK</button>
+        <button class="ctrl-btn" data-act="right">►</button>
+    </div>
+</div>
+<div class="game-footer">Boxing &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_boxing',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=400,H=350;
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hPHP=document.getElementById('hPHP'),hEHP=document.getElementById('hEHP'),hWins=document.getElementById('hWins');
+const WINS_KEY='boxing_wins';
+let wins=+localStorage.getItem(WINS_KEY)||0;hWins.textContent=wins;
+
+let player,enemy,state,raf,roundTimer;
+
+function startGame(){
+    player={x:120,hp:100,blocking:false,punchAnim:0,punchType:null,cooldown:0};
+    enemy={x:280,hp:100,blocking:false,punchAnim:0,attackTimer:0,state:'idle'};
+    state='playing';roundTimer=0;
+    hPHP.textContent=100;hEHP.textContent=100;
+    overlay.classList.add('hidden');oScore.style.display='none';
+    if(raf)cancelAnimationFrame(raf);
+    loop();
+}
+
+function playerPunch(type){
+    if(state!=='playing'||player.cooldown>0||player.blocking)return;
+    player.punchType=type;player.punchAnim=10;
+    player.cooldown=type==='jab'?15:25;
+    const dmg=type==='jab'?5+Math.floor(Math.random()*5):10+Math.floor(Math.random()*8);
+    const dist=Math.abs(player.x-enemy.x);
+    if(dist<100){
+        if(enemy.blocking){/* blocked */}
+        else{enemy.hp-=dmg;enemy.hp=Math.max(0,enemy.hp);hEHP.textContent=enemy.hp;}
+    }
+}
+
+function enemyAI(){
+    enemy.attackTimer++;
+    const dist=Math.abs(player.x-enemy.x);
+    // Move toward player
+    if(dist>90)enemy.x-=1;
+    else if(dist<60)enemy.x+=1;
+    // Random attacks
+    if(enemy.attackTimer>40+Math.random()*30){
+        enemy.attackTimer=0;
+        if(Math.random()<0.3){
+            enemy.blocking=true;setTimeout(()=>enemy.blocking=false,500);
+        }else{
+            enemy.punchAnim=10;
+            const dmg=5+Math.floor(Math.random()*8);
+            if(dist<100&&!player.blocking){
+                player.hp-=dmg;player.hp=Math.max(0,player.hp);hPHP.textContent=player.hp;
+            }
+        }
+    }
+}
+
+function update(){
+    if(player.cooldown>0)player.cooldown--;
+    if(player.punchAnim>0)player.punchAnim--;
+    if(enemy.punchAnim>0)enemy.punchAnim--;
+    roundTimer++;
+    enemyAI();
+    if(player.hp<=0||enemy.hp<=0){
+        if(enemy.hp<=0){wins++;localStorage.setItem(WINS_KEY,wins);hWins.textContent=wins;}
+        endGame();
+    }
+}
+
+function draw(){
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // Ring floor
+    ctx.fillStyle='#1a1333';ctx.fillRect(20,H-60,W-40,50);
+    ctx.strokeStyle='#2a1f4e';ctx.lineWidth=2;
+    ctx.strokeRect(20,H-60,W-40,50);
+    // Ropes
+    ctx.strokeStyle='#4a3f6e';
+    for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(20,80+i*50);ctx.lineTo(W-20,80+i*50);ctx.stroke();}
+    // HP bars
+    ctx.fillStyle='#333';ctx.fillRect(30,20,150,14);ctx.fillRect(W-180,20,150,14);
+    ctx.fillStyle='#00e5ff';ctx.fillRect(30,20,150*(player.hp/100),14);
+    ctx.fillStyle='#ff6b9d';ctx.fillRect(W-180,20,150*(enemy.hp/100),14);
+    ctx.fillStyle='#fff';ctx.font='10px sans-serif';ctx.textAlign='center';
+    ctx.fillText('YOU',105,16);ctx.fillText('CPU',W-105,16);
+    // Player boxer
+    const py=H-120;
+    ctx.fillStyle=player.blocking?'#4488cc':'#00e5ff';
+    ctx.fillRect(player.x-15,py,30,60);// body
+    ctx.fillStyle='#ffd166';ctx.beginPath();ctx.arc(player.x,py-10,14,0,Math.PI*2);ctx.fill();// head
+    // Punch animation
+    if(player.punchAnim>0){
+        ctx.fillStyle='#ff8a47';
+        const px2=player.x+30+(player.punchType==='hook'?15:0);
+        ctx.beginPath();ctx.arc(px2,py+15,8,0,Math.PI*2);ctx.fill();
+    }
+    if(player.blocking){
+        ctx.strokeStyle='rgba(0,229,255,0.5)';ctx.lineWidth=3;
+        ctx.beginPath();ctx.arc(player.x,py+20,25,0,Math.PI*2);ctx.stroke();
+    }
+    // Enemy boxer
+    ctx.fillStyle=enemy.blocking?'#884444':'#ff6b9d';
+    ctx.fillRect(enemy.x-15,py,30,60);
+    ctx.fillStyle='#ff8a47';ctx.beginPath();ctx.arc(enemy.x,py-10,14,0,Math.PI*2);ctx.fill();
+    if(enemy.punchAnim>0){
+        ctx.fillStyle='#ffd166';
+        ctx.beginPath();ctx.arc(enemy.x-30,py+15,8,0,Math.PI*2);ctx.fill();
+    }
+    if(enemy.blocking){
+        ctx.strokeStyle='rgba(255,107,157,0.5)';ctx.lineWidth=3;
+        ctx.beginPath();ctx.arc(enemy.x,py+20,25,0,Math.PI*2);ctx.stroke();
+    }
+}
+
+function loop(){
+    if(state!=='playing')return;
+    update();draw();raf=requestAnimationFrame(loop);
+}
+
+function endGame(){
+    state='over';
+    const won=enemy.hp<=0;
+    oScore.style.display='block';oScore.textContent=won?'You Win! KO!':'You Lost!';
+    document.getElementById('startBtn').textContent='Fight Again';overlay.classList.remove('hidden');
+}
+
+let keys={};
+document.addEventListener('keydown',e=>{
+    if(state!=='playing')return;
+    if(e.key==='a'||e.key==='ArrowLeft')player.x=Math.max(40,player.x-5);
+    if(e.key==='d'||e.key==='ArrowRight')player.x=Math.min(W-40,player.x+5);
+    if(e.key==='j')playerPunch('jab');
+    if(e.key==='k')playerPunch('hook');
+    if(e.key===' '){e.preventDefault();player.blocking=true;}
+});
+document.addEventListener('keyup',e=>{
+    if(e.key===' ')player.blocking=false;
+});
+document.querySelectorAll('[data-act]').forEach(btn=>{
+    const act=btn.dataset.act;
+    if(act==='jab'||act==='hook'){
+        btn.addEventListener('click',()=>playerPunch(act));
+        btn.addEventListener('touchstart',e=>{e.preventDefault();playerPunch(act);},{passive:false});
+    }else if(act==='block'){
+        btn.addEventListener('touchstart',e=>{e.preventDefault();player.blocking=true;},{passive:false});
+        btn.addEventListener('touchend',()=>player.blocking=false);
+        btn.addEventListener('mousedown',()=>player.blocking=true);
+        btn.addEventListener('mouseup',()=>player.blocking=false);
+    }else if(act==='left'){
+        btn.addEventListener('touchstart',e=>{e.preventDefault();player.x=Math.max(40,player.x-20);},{passive:false});
+        btn.addEventListener('click',()=>{player.x=Math.max(40,player.x-20);});
+    }else if(act==='right'){
+        btn.addEventListener('touchstart',e=>{e.preventDefault();player.x=Math.min(W-40,player.x+20);},{passive:false});
+        btn.addEventListener('click',()=>{player.x=Math.min(W-40,player.x+20);});
+    }
+});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

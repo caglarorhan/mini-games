@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🀄 Mahjong — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--yellow);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--green);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--yellow),var(--green));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--yellow),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:440px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.p-val{color:var(--green)}.t-val{color:var(--cyan)}.w-val{color:var(--yellow)}
+.board-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0a1a;padding:12px;min-height:300px}
+.tile-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:4px}
+.tile{width:44px;height:54px;background:linear-gradient(180deg,#2a2060,#1a1333);border:2px solid #3a2f6e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;cursor:pointer;transition:all .15s;user-select:none;-webkit-tap-highlight-color:transparent}
+.tile:hover{border-color:var(--cyan)}
+.tile.selected{border-color:var(--yellow);background:linear-gradient(180deg,#3a2f7e,#2a1f5e);box-shadow:0 0 10px rgba(255,209,102,0.3)}
+.tile.matched{opacity:0;pointer-events:none;transform:scale(0.8)}
+.tile.blocked{opacity:0.4;cursor:default}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.6rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--yellow),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.1rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--yellow),var(--green));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+@media(max-width:380px){.tile{width:38px;height:48px;font-size:1.1rem}}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🀄 Mahjong</span></div>
+<header><h1>Mahjong Solitaire</h1><p>Match pairs of free tiles to clear the board!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Pairs</div><div class="value p-val" id="hPairs">0</div></div>
+        <div class="hud-box"><div class="label">Tiles</div><div class="value t-val" id="hTiles">0</div></div>
+        <div class="hud-box"><div class="label">Wins</div><div class="value w-val" id="hWins">0</div></div>
+    </div>
+    <div class="board-wrap" id="boardWrap">
+        <div class="tile-grid" id="tileGrid"></div>
+        <div class="overlay" id="overlay">
+            <h2>Mahjong Solitaire</h2>
+            <div class="sub">Match identical free tiles!<br>Free = not blocked left & right.</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Mahjong Solitaire &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_mahjong',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const tileGrid=document.getElementById('tileGrid');
+const overlay=document.getElementById('overlay'),oScore=document.getElementById('oScore');
+const hPairs=document.getElementById('hPairs'),hTiles=document.getElementById('hTiles'),hWins=document.getElementById('hWins');
+const WINS_KEY='mahjong_wins';
+let wins=+localStorage.getItem(WINS_KEY)||0;hWins.textContent=wins;
+const FACES=['🐉','🐍','🐢','🦋','🌸','🎋','🏮','🎎','🎏','🌙','⭐','🔥','💎','🍀','🎯','🎲','🧧','🪷'];
+let tiles=[],selected=null,pairs=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function isFree(idx){
+    if(tiles[idx].matched)return false;
+    const row=Math.floor(idx/8),col=idx%8;
+    // Not blocked if leftmost/rightmost in row, or neighbor is matched
+    const leftFree=col===0||tiles[idx-1].matched;
+    const rightFree=col===7||tiles[idx+1].matched;
+    return leftFree||rightFree;
+}
+
+function render(){
+    tileGrid.innerHTML='';
+    let remaining=0;
+    tiles.forEach((t,i)=>{
+        const el=document.createElement('div');
+        el.className='tile'+(t.matched?' matched':'')+(t===selected?' selected':'');
+        if(!t.matched&&!isFree(i))el.classList.add('blocked');
+        el.textContent=t.matched?'':t.face;
+        el.addEventListener('click',()=>clickTile(i));
+        tileGrid.appendChild(el);
+        if(!t.matched)remaining++;
+    });
+    hTiles.textContent=remaining;
+}
+
+function clickTile(idx){
+    if(tiles[idx].matched)return;
+    if(!isFree(idx))return;
+    if(selected===tiles[idx]){selected=null;render();return;}
+    if(!selected){selected=tiles[idx];render();return;}
+    if(selected.face===tiles[idx].face){
+        selected.matched=true;tiles[idx].matched=true;
+        pairs++;hPairs.textContent=pairs;selected=null;render();
+        if(tiles.every(t=>t.matched)){
+            wins++;localStorage.setItem(WINS_KEY,wins);hWins.textContent=wins;
+            setTimeout(()=>{
+                oScore.style.display='block';oScore.textContent='Pairs matched: '+pairs;
+                document.getElementById('startBtn').textContent='Play Again';
+                overlay.classList.remove('hidden');
+            },500);
+        }
+    }else{
+        selected=null;render();
+    }
+}
+
+function startGame(){
+    pairs=0;hPairs.textContent=0;selected=null;
+    const numPairs=16;
+    const faces=shuffle([...FACES]).slice(0,numPairs);
+    const arr=[];faces.forEach(f=>{arr.push({face:f,matched:false},{face:f,matched:false});});
+    tiles=shuffle(arr);
+    oScore.style.display='none';overlay.classList.add('hidden');render();
+}
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

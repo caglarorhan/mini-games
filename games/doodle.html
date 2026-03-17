@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🏃 Doodle Jump — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--yellow);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}.back-link:hover{color:var(--green)}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--yellow));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.s-val{color:var(--green)}.hi-val{color:var(--yellow)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border);background:#0a0618}
+canvas{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--green),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--yellow));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.mobile-controls{display:none;justify-content:space-between;margin-top:10px;padding:0 20px}
+.m-btn{width:70px;height:56px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-light);font-size:1.5rem;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.m-btn:active{background:var(--green)}
+@media(max-width:768px){.mobile-controls{display:flex}}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🏃 Doodle Jump</span></div>
+<header><h1>Doodle Jump</h1><p>Jump higher and higher — don't fall!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value s-val" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value hi-val" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="360" height="520"></canvas>
+        <div class="overlay" id="overlay">
+            <h2 id="oTitle">Doodle Jump</h2>
+            <div class="sub" id="oSub">Tilt or use arrows to move left/right.<br>Jump on platforms to go higher!</div>
+            <div class="final-score" id="oScore" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play!</button>
+        </div>
+    </div>
+    <div class="mobile-controls">
+        <button class="m-btn" id="leftBtn">◄</button>
+        <button class="m-btn" id="rightBtn">►</button>
+    </div>
+</div>
+<div class="game-footer">Doodle Jump &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_doodle',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hScore=document.getElementById('hScore'),hBest=document.getElementById('hBest');
+const BEST_KEY='doodle_best';
+let bestScore=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=bestScore;
+let state='idle',player,platforms,score,maxHeight,animFrame,keys={};
+
+function startGame(){
+    player={x:W/2-15,y:H-60,w:30,h:30,vy:0,vx:0};
+    platforms=[];score=0;maxHeight=0;
+    for(let i=0;i<8;i++)platforms.push(makePlatform(H-80*i-40));
+    platforms[0].x=player.x-10;platforms[0].type='normal';
+    state='running';overlay.classList.add('hidden');
+    if(animFrame)cancelAnimationFrame(animFrame);animFrame=requestAnimationFrame(loop);
+}
+
+function makePlatform(y){
+    const x=Math.random()*(W-70);
+    const rnd=Math.random();
+    let type='normal';
+    if(score>500&&rnd<0.15)type='breaking';
+    else if(score>300&&rnd<0.1)type='moving';
+    return{x,y,w:70,h:12,type,mx:type==='moving'?(Math.random()>0.5?1:-1)*1.5:0,broken:false};
+}
+
+function loop(){if(state!=='running')return;update();draw();animFrame=requestAnimationFrame(loop);}
+
+function update(){
+    // Input
+    if(keys.left)player.vx=-5;else if(keys.right)player.vx=5;else player.vx*=0.85;
+    player.x+=player.vx;
+    // Wrap around
+    if(player.x+player.w<0)player.x=W;
+    if(player.x>W)player.x=-player.w;
+    // Gravity
+    player.vy+=0.38;player.y+=player.vy;
+    // Move moving platforms
+    platforms.forEach(p=>{if(p.type==='moving'){p.x+=p.mx;if(p.x<0||p.x+p.w>W)p.mx*=-1;}});
+    // Landing on platforms (only when falling)
+    if(player.vy>0){
+        platforms.forEach(p=>{
+            if(p.broken)return;
+            if(player.x+player.w>p.x&&player.x<p.x+p.w&&player.y+player.h>p.y&&player.y+player.h<p.y+p.h+10){
+                if(p.type==='breaking'){p.broken=true;return;}
+                player.vy=-10.5;
+            }
+        });
+    }
+    // Scroll up
+    if(player.y<H/2){
+        const shift=H/2-player.y;
+        player.y=H/2;
+        platforms.forEach(p=>p.y+=shift);
+        maxHeight+=shift;score=Math.floor(maxHeight/10);hScore.textContent=score;
+    }
+    // Remove off-screen platforms, add new ones
+    platforms=platforms.filter(p=>p.y<H+20);
+    while(platforms.length<8){
+        const topY=Math.min(...platforms.map(p=>p.y));
+        platforms.push(makePlatform(topY-60-Math.random()*30));
+    }
+    // Fall off
+    if(player.y>H+50)endGame();
+}
+
+function draw(){
+    const grad=ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'#0a0618');grad.addColorStop(1,'#1a1333');
+    ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+    // Platforms
+    platforms.forEach(p=>{
+        if(p.broken)return;
+        if(p.type==='normal')ctx.fillStyle='#06d6a0';
+        else if(p.type==='breaking')ctx.fillStyle='#ff8a47';
+        else ctx.fillStyle='#00e5ff';
+        ctx.fillRect(p.x,p.y,p.w,p.h);
+        ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(p.x+4,p.y+2,p.w-8,3);
+    });
+    // Player
+    ctx.fillStyle='#ffd166';ctx.fillRect(player.x,player.y,player.w,player.h);
+    ctx.fillStyle='#fff';ctx.fillRect(player.x+6,player.y+8,6,6);ctx.fillRect(player.x+18,player.y+8,6,6);
+    ctx.fillStyle='#333';ctx.fillRect(player.x+8,player.y+10,3,3);ctx.fillRect(player.x+20,player.y+10,3,3);
+    // Nose
+    if(player.vx>=0)ctx.fillRect(player.x+player.w-2,player.y+16,4,4);
+    else ctx.fillRect(player.x-2,player.y+16,4,4);
+}
+
+function endGame(){
+    state='dead';if(animFrame)cancelAnimationFrame(animFrame);
+    if(score>bestScore){bestScore=score;localStorage.setItem(BEST_KEY,bestScore);hBest.textContent=bestScore;}
+    oTitle.textContent='You Fell!';oSub.textContent='';oScore.textContent='Score: '+score;oScore.style.display='block';overlay.classList.remove('hidden');
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true;if(e.code==='Space'&&state!=='running'){e.preventDefault();startGame();}});
+document.addEventListener('keyup',e=>{if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false;});
+// Mobile tilt
+if(window.DeviceOrientationEvent){
+    window.addEventListener('deviceorientation',e=>{if(state!=='running')return;const tilt=e.gamma||0;keys.left=tilt<-8;keys.right=tilt>8;if(Math.abs(tilt)>8)player.vx=tilt*0.4;});
+}
+// Mobile buttons
+const lb=document.getElementById('leftBtn'),rb=document.getElementById('rightBtn');
+lb.addEventListener('touchstart',e=>{e.preventDefault();keys.left=true;},{passive:false});
+lb.addEventListener('touchend',e=>{e.preventDefault();keys.left=false;},{passive:false});
+rb.addEventListener('touchstart',e=>{e.preventDefault();keys.right=true;},{passive:false});
+rb.addEventListener('touchend',e=>{e.preventDefault();keys.right=false;},{passive:false});
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

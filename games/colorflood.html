@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🎨 Color Flood — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--pink);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--cyan);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--pink),var(--cyan));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:380px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px}
+.m-val{color:var(--pink)}.hi-val{color:var(--yellow)}.p-val{color:var(--green)}
+.board{display:grid;gap:1px;margin:0 auto 12px;max-width:350px;border-radius:10px;overflow:hidden}
+.cell{aspect-ratio:1;transition:background .15s}
+.color-btns{display:flex;justify-content:center;gap:8px;margin-bottom:12px}
+.color-btn{width:44px;height:44px;border-radius:10px;border:3px solid transparent;cursor:pointer;transition:transform .1s,border-color .15s}
+.color-btn:hover{transform:scale(1.1)}
+.color-btn.active{border-color:#fff}
+.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:50}
+.overlay.hidden{opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay h2{font-size:1.7rem;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--pink),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.9rem;text-align:center;padding:0 20px}
+.overlay .final-score{color:var(--green);font-size:1.2rem;font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--pink),var(--cyan));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🎨 Color Flood</span></div>
+<header><h1>Color Flood</h1><p>Flood the board with one color!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Moves</div><div class="value m-val" id="hMoves">0</div></div>
+        <div class="hud-box"><div class="label">Limit</div><div class="value hi-val" id="hLimit">25</div></div>
+        <div class="hud-box"><div class="label">Flooded</div><div class="value p-val" id="hPct">0%</div></div>
+    </div>
+    <div id="board" class="board"></div>
+    <div id="colorBtns" class="color-btns"></div>
+</div>
+<div class="overlay" id="overlay">
+    <h2 id="oTitle">Color Flood</h2>
+    <div class="sub" id="oSub">Pick colors to flood from the top-left!<br>Fill the entire board in 25 moves or less!</div>
+    <div class="final-score" id="oScore" style="display:none"></div>
+    <button class="start-btn" id="startBtn">Play!</button>
+</div>
+<div class="game-footer">Color Flood &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_colorflood',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const SIZE=14,MAX_MOVES=25;
+const COLORS=['#ff6b9d','#ff8a47','#ffd166','#06d6a0','#00e5ff','#a855f7'];
+const boardEl=document.getElementById('board'),colorBtnsEl=document.getElementById('colorBtns');
+const overlay=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),oSub=document.getElementById('oSub'),oScore=document.getElementById('oScore');
+const hMoves=document.getElementById('hMoves'),hLimit=document.getElementById('hLimit'),hPct=document.getElementById('hPct');
+const WINS_KEY='colorflood_wins';
+let totalWins=+localStorage.getItem(WINS_KEY)||0;
+let grid,moves,state;
+
+boardEl.style.gridTemplateColumns=`repeat(${SIZE},1fr)`;
+
+function generate(){
+    grid=[];for(let r=0;r<SIZE;r++){grid[r]=[];for(let c=0;c<SIZE;c++)grid[r][c]=Math.floor(Math.random()*COLORS.length);}
+}
+
+function render(){
+    boardEl.innerHTML='';
+    for(let r=0;r<SIZE;r++){
+        for(let c=0;c<SIZE;c++){
+            const el=document.createElement('div');
+            el.className='cell';el.style.background=COLORS[grid[r][c]];
+            boardEl.appendChild(el);
+        }
+    }
+}
+
+function buildBtns(){
+    colorBtnsEl.innerHTML='';
+    COLORS.forEach((c,i)=>{
+        const btn=document.createElement('div');
+        btn.className='color-btn';btn.style.background=c;
+        btn.addEventListener('click',()=>flood(i));
+        colorBtnsEl.appendChild(btn);
+    });
+}
+
+function flood(newColor){
+    if(state!=='playing')return;
+    const oldColor=grid[0][0];
+    if(newColor===oldColor)return;
+    moves++;hMoves.textContent=moves;
+    // BFS flood fill from (0,0)
+    const visited=Array.from({length:SIZE},()=>Array(SIZE).fill(false));
+    const queue=[[0,0]];visited[0][0]=true;
+    while(queue.length){
+        const[r,c]=queue.shift();
+        grid[r][c]=newColor;
+        [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].forEach(([nr,nc])=>{
+            if(nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE&&!visited[nr][nc]&&grid[nr][nc]===oldColor){
+                visited[nr][nc]=true;queue.push([nr,nc]);
+            }
+        });
+    }
+    render();
+    // Check win
+    const total=SIZE*SIZE;
+    const flooded=grid.flat().filter(v=>v===newColor).length;
+    hPct.textContent=Math.round(flooded/total*100)+'%';
+    if(flooded===total){
+        state='won';totalWins++;localStorage.setItem(WINS_KEY,totalWins);
+        setTimeout(()=>{
+            oTitle.textContent='You Win!';oSub.textContent='Flooded in '+moves+' moves!';oScore.textContent='Wins: '+totalWins;oScore.style.display='block';
+            overlay.classList.remove('hidden');document.getElementById('startBtn').textContent='New Board';
+        },300);
+    } else if(moves>=MAX_MOVES){
+        state='lost';
+        setTimeout(()=>{
+            oTitle.textContent='Out of Moves!';oSub.textContent=Math.round(flooded/total*100)+'% flooded';oScore.style.display='none';
+            overlay.classList.remove('hidden');document.getElementById('startBtn').textContent='Try Again';
+        },300);
+    }
+}
+
+function startGame(){
+    generate();render();buildBtns();moves=0;state='playing';
+    hMoves.textContent=0;hLimit.textContent=MAX_MOVES;hPct.textContent='0%';
+    overlay.classList.add('hidden');oScore.style.display='none';
+}
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+})();
+</script>
+</body>
+</html>

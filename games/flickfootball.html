@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🏈 Flick Football — Mini Games Arcade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#0f0a1e;--bg-card:#1a1333;--border:#2a1f4e;--pink:#ff6b9d;--orange:#ff8a47;--yellow:#ffd166;--green:#06d6a0;--cyan:#00e5ff;--blue:#118ab2;--purple:#a855f7;--text-light:#f0e6ff;--text-muted:#a99ec4}
+body{background:var(--bg-dark);color:var(--text-light);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;touch-action:manipulation}
+.bg-shapes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.bg-blob:nth-child(1){width:400px;height:400px;background:var(--green);top:-100px;left:-100px}
+.bg-blob:nth-child(2){width:350px;height:350px;background:var(--orange);bottom:-80px;right:-80px}
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,10,30,.85);border-bottom:1px solid var(--border)}
+.back-link{color:var(--cyan);text-decoration:none;font-weight:600;font-size:.95rem}
+.game-badge{background:linear-gradient(135deg,var(--green),var(--orange));color:#fff;padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+header{position:relative;z-index:10;text-align:center;padding:18px 20px 8px}
+header h1{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text-muted);margin-top:4px;font-size:.9rem}
+.game-container{position:relative;z-index:10;max-width:420px;margin:10px auto;padding:0 12px}
+.hud{display:flex;justify-content:space-around;margin-bottom:10px;gap:8px}
+.hud-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;flex:1}
+.hud-box .label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.hud-box .value{font-size:1.15rem;font-weight:800;margin-top:2px;color:var(--green)}
+.canvas-wrap{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--border)}
+canvas{display:block;width:100%;height:auto;background:#1a3a1a}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,10,30,.88);z-index:5;border-radius:14px}
+.overlay.hidden{display:none}
+.overlay h2{font-size:1.5rem;font-weight:900;margin-bottom:6px}
+.overlay .sub{color:var(--text-muted);margin-bottom:14px;font-size:.85rem;text-align:center;padding:0 20px}
+.overlay .final{color:var(--green);font-weight:800;margin-bottom:12px}
+.start-btn{background:linear-gradient(135deg,var(--green),var(--orange));color:#fff;border:none;padding:14px 40px;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer}
+.game-footer{position:relative;z-index:10;text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="bg-shapes"><div class="bg-blob"></div><div class="bg-blob"></div></div>
+<div class="top-bar"><a href="../index.html" class="back-link">&#8592; Back to Games</a><span class="game-badge">🏈 Flick Football</span></div>
+<header><h1>Flick Football</h1><p>Flick the ball through the uprights!</p></header>
+<div class="game-container">
+    <div class="hud">
+        <div class="hud-box"><div class="label">Score</div><div class="value" id="hScore">0</div></div>
+        <div class="hud-box"><div class="label">Round</div><div class="value" id="hRound">0/10</div></div>
+        <div class="hud-box"><div class="label">Best</div><div class="value" id="hBest">0</div></div>
+    </div>
+    <div class="canvas-wrap">
+        <canvas id="gc" width="380" height="480"></canvas>
+        <div class="overlay" id="overlay">
+            <h2>🏈 Flick Football</h2>
+            <div class="sub">Swipe/drag upward to kick the ball through the moving goalposts! 10 attempts.</div>
+            <div class="final" id="oFinal" style="display:none"></div>
+            <button class="start-btn" id="startBtn">Play</button>
+        </div>
+    </div>
+</div>
+<div class="game-footer">Flick Football &bull; Mini Games Arcade</div>
+<script>
+(function(){var k='mg_plays_flickfootball',c=+localStorage.getItem(k)||0;localStorage.setItem(k,c+1)})();
+(function(){
+'use strict';
+const canvas=document.getElementById('gc'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+const overlay=document.getElementById('overlay'),oFinal=document.getElementById('oFinal');
+const hScore=document.getElementById('hScore'),hRound=document.getElementById('hRound'),hBest=document.getElementById('hBest');
+const BEST_KEY='flickfootball_best';
+let best=+localStorage.getItem(BEST_KEY)||0;hBest.textContent=best;
+
+const BALL_START_Y=H-60,TOTAL_ROUNDS=10;
+let ball,goalPost,score,round,state,dragging,dragStart,dragEnd,msg,msgTimer;
+
+function start(){
+    score=0;round=0;state='playing';msg='';msgTimer=0;
+    hScore.textContent=0;
+    overlay.style.display='';overlay.classList.add('hidden');oFinal.style.display='none';
+    nextRound();
+    raf();
+}
+
+function nextRound(){
+    round++;
+    if(round>TOTAL_ROUNDS){endGame();return;}
+    hRound.textContent=round+'/'+TOTAL_ROUNDS;
+    ball={x:W/2,y:BALL_START_Y,vx:0,vy:0,r:12,flying:false,scale:1};
+    const gapW=Math.max(50,100-round*5);
+    const gpX=W/2;
+    goalPost={x:gpX,gapW,postH:80,y:80,dir:(Math.random()<0.5?1:-1)*(1+round*0.3)};
+    dragging=false;
+}
+
+function raf(){
+    if(state!=='playing'){draw();return;}
+    update();draw();requestAnimationFrame(raf);
+}
+
+function update(){
+    // Move goal posts
+    goalPost.x+=goalPost.dir;
+    if(goalPost.x-goalPost.gapW/2<20||goalPost.x+goalPost.gapW/2>W-20)goalPost.dir*=-1;
+    
+    if(ball.flying){
+        ball.x+=ball.vx;ball.y+=ball.vy;
+        ball.scale=Math.max(0.3,1-(BALL_START_Y-ball.y)/(BALL_START_Y-goalPost.y));
+        
+        // Check if reached goal line
+        if(ball.y<=goalPost.y){
+            const leftPost=goalPost.x-goalPost.gapW/2;
+            const rightPost=goalPost.x+goalPost.gapW/2;
+            if(ball.x>leftPost+5&&ball.x<rightPost-5){
+                score+=3;hScore.textContent=score;
+                msg='GOOD! +3';msgTimer=60;
+            }else{
+                msg='MISS!';msgTimer=60;
+            }
+            ball.flying=false;
+            setTimeout(nextRound,800);
+        }
+        // Off screen
+        if(ball.x<0||ball.x>W||ball.y<-20){
+            msg='MISS!';msgTimer=60;
+            ball.flying=false;
+            setTimeout(nextRound,800);
+        }
+    }
+    
+    if(msgTimer>0)msgTimer--;
+}
+
+function draw(){
+    // Field
+    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0a2a0a');g.addColorStop(1,'#1a4a1a');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    
+    // Yard lines
+    ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;
+    for(let y=100;y<H;y+=40){ctx.beginPath();ctx.moveTo(30,y);ctx.lineTo(W-30,y);ctx.stroke();}
+    
+    // Goal posts
+    const lp=goalPost.x-goalPost.gapW/2,rp=goalPost.x+goalPost.gapW/2;
+    ctx.fillStyle='#ffd166';
+    // Left post
+    ctx.fillRect(lp-3,goalPost.y-goalPost.postH,6,goalPost.postH);
+    // Right post
+    ctx.fillRect(rp-3,goalPost.y-goalPost.postH,6,goalPost.postH);
+    // Crossbar
+    ctx.fillRect(lp-3,goalPost.y,rp-lp+6,4);
+    
+    // Ball
+    if(!ball.flying||ball.y>0){
+        ctx.save();
+        ctx.translate(ball.x,ball.y);
+        ctx.scale(ball.scale,ball.scale);
+        ctx.fillStyle='#8B4513';
+        ctx.beginPath();ctx.ellipse(0,0,ball.r,ball.r*1.3,0,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(-4,-ball.r*0.8);ctx.lineTo(-4,ball.r*0.8);ctx.stroke();
+        ctx.beginPath();for(let i=-2;i<=2;i++){ctx.moveTo(-4,i*5);ctx.lineTo(4,i*5);}ctx.stroke();
+        ctx.restore();
+    }
+    
+    // Drag indicator
+    if(dragging&&dragStart){
+        ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=2;ctx.setLineDash([5,5]);
+        ctx.beginPath();ctx.moveTo(dragStart.x,dragStart.y);ctx.lineTo(ball.x,ball.y);ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    
+    // Message
+    if(msgTimer>0&&msg){
+        ctx.fillStyle=msg.includes('GOOD')?'#06d6a0':'#ff6b6b';
+        ctx.font='bold 28px sans-serif';ctx.textAlign='center';ctx.fillText(msg,W/2,H/2);
+    }
+    
+    // Instructions
+    if(!ball.flying&&msgTimer<=0){
+        ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='14px sans-serif';ctx.textAlign='center';
+        ctx.fillText('Swipe up to kick!',W/2,H-20);
+    }
+}
+
+function getPos(e){
+    const r=canvas.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    return{x:(t.clientX-r.left)*(W/r.width),y:(t.clientY-r.top)*(H/r.height)};
+}
+
+function onStart(e){
+    if(state!=='playing'||ball.flying)return;
+    e.preventDefault();
+    const p=getPos(e);
+    if(Math.abs(p.x-ball.x)<40&&Math.abs(p.y-ball.y)<40){
+        dragging=true;dragStart=p;
+    }
+}
+function onMove(e){
+    if(!dragging)return;
+    e.preventDefault();
+    dragEnd=getPos(e);
+}
+function onEnd(e){
+    if(!dragging)return;
+    e.preventDefault();
+    dragging=false;
+    if(dragEnd&&dragStart){
+        const dx=dragStart.x-dragEnd.x;
+        const dy=dragStart.y-dragEnd.y;
+        if(dy>20){
+            ball.vx=dx*0.12;
+            ball.vy=-Math.min(dy*0.08,12);
+            ball.flying=true;
+        }
+    }
+    dragStart=null;dragEnd=null;
+}
+
+canvas.addEventListener('mousedown',onStart);canvas.addEventListener('mousemove',onMove);canvas.addEventListener('mouseup',onEnd);
+canvas.addEventListener('touchstart',onStart);canvas.addEventListener('touchmove',onMove);canvas.addEventListener('touchend',onEnd);
+
+function endGame(){
+    state='over';
+    if(score>best){best=score;localStorage.setItem(BEST_KEY,best);hBest.textContent=best;}
+    oFinal.style.display='block';oFinal.textContent='Score: '+score+'/'+TOTAL_ROUNDS*3;
+    document.getElementById('startBtn').textContent='Play Again';
+    overlay.style.display='';overlay.classList.remove('hidden');
+}
+
+document.getElementById('startBtn').addEventListener('click',start);
+})();
+</script>
+</body>
+</html>
