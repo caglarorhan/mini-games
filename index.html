@@ -738,6 +738,9 @@
         .tag-retro { background: rgba(124,58,237,0.15); color: var(--deep-purple); }
         .tag-memory { background: rgba(255,209,102,0.15); color: var(--yellow); }
         .tag-puzzle { background: rgba(6,214,160,0.15); color: var(--green); }
+        .tag-sports { background: rgba(17,138,178,0.15); color: var(--blue); }
+        .tag-music { background: rgba(255,107,157,0.15); color: var(--pink); }
+        .tag-skill { background: rgba(255,138,71,0.15); color: var(--orange); }
 
         .card-title {
             font-size: 1.25rem;
@@ -1415,7 +1418,7 @@
         <!-- ========== STATS BAR ========== -->
         <div class="stats-bar">
             <div class="stat">
-                <div class="stat-number" id="stat-games">15</div>
+                <div class="stat-number" id="stat-games">100</div>
                 <div class="stat-label">Mini Games</div>
             </div>
             <div class="stat">
@@ -1510,6 +1513,9 @@
                     <button class="filter-tag" data-filter="arcade">Arcade</button>
                     <button class="filter-tag" data-filter="retro">Retro</button>
                     <button class="filter-tag" data-filter="strategy">Strategy</button>
+                    <button class="filter-tag" data-filter="sports">Sports</button>
+                    <button class="filter-tag" data-filter="music">Music</button>
+                    <button class="filter-tag" data-filter="chill">Chill</button>
                 </div>
             </div>
 
@@ -3920,7 +3926,7 @@
         const statsObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    animateCounter(document.getElementById('stat-games'), '15', '');
+                    animateCounter(document.getElementById('stat-games'), '100', '');
                     animateCounter(document.getElementById('stat-players'), '4.2K');
                     animateCounter(document.getElementById('stat-played'), '87K');
                     statsObserver.disconnect();
@@ -3931,7 +3937,7 @@
 
         // ==================== STAGGER CARD REVEALS ====================
         document.querySelectorAll('.game-card.reveal').forEach((card, i) => {
-            card.style.transitionDelay = (i * 0.08) + 's';
+            card.style.transitionDelay = (Math.min(i, 20) * 0.04) + 's';
         });
 
         // ==================== SEARCH & FILTER ====================
